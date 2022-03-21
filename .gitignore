@@ -1,0 +1,10 @@
+**/data
+**/__pycache__
+**/.ipynb_checkpoints
+
+*.zip
+Untitled.ipynb
+
+datasets/
+[w][0-9]/
+research/
