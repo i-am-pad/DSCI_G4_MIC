@@ -1,3 +1,3 @@
 # DSCI 591
 
-Drexel DSCI 591 Assignment/Project Repo
+Drexel DSCI 591 Project Repo
