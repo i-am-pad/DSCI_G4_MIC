@@ -4,8 +4,9 @@ class Parameters:
     '''configuration holder'''
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size, use_gpu,
-                 trial, epochs, save_model_train_data, progress_report_cadence,
-                 model, mode,
+                 trial, epochs, class_weight,
+                 model, mode, optimizer,
+                 describe, verbose,
                  **kwargs):
         ###############################
         # DATA
@@ -18,21 +19,27 @@ class Parameters:
         
         self.train_split = 0.7
         self.valid_split = 0.2
+        self.normalize = True
                 
         ###############################
         # MODEL
         self.model = model
         self.mode = mode
+        self.optimizer = optimizer
         
         # training
         self.trial = trial
         self.epochs = epochs
-        self.save_model_train_data = save_model_train_data
-        self.progress_report_cadence = progress_report_cadence
+        self.class_weight = class_weight
         
         self.batch_size = 32
         self.learning_rate = 0.001
         self.weight_decay = 0.01
         
-        # CNN params
+        # cnn
         # ...
+        
+        ###############################
+        # HELP
+        self.describe = describe
+        self.verbose = verbose

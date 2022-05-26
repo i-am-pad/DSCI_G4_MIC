@@ -11,9 +11,9 @@ from tqdm import tqdm
 
 import utilities
 
-def train_test_split(params, dataset: tf.data.Dataset):
-    train_size = params.train_split * len(dataset)
-    validation_size = params.valid_split * len(dataset)
+def train_valid_test_split(params, dataset: tf.data.Dataset):
+    train_size = int(params.train_split * len(dataset))
+    validation_size = int(params.valid_split * len(dataset))
     
     result = {}
     result['train'] = dataset.take(train_size)
@@ -23,7 +23,7 @@ def train_test_split(params, dataset: tf.data.Dataset):
     
     return result
 
-def get_ds(params):
+def load(params):
     label_classes = {'benign': 0, 'malicious': 1}
     
     images = []
@@ -33,10 +33,14 @@ def get_ds(params):
         files = glob.glob(os.path.join(dir, '*'))
         if params.image_limit:
             files = files[:params.image_limit]
-        print(dir, len(files))
+        
         labels.extend([label_value] * len(files))
-        for file in tqdm(files, desc='files', unit='file'):
-            images.append(utilities.read_file(file).reshape(params.image_size, params.image_size))
+        for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
+            data = utilities.read_file(file).astype('float64')
+            if params.normalize:
+                # normalize pixel's color value to [0, 1] range from [0, 255]
+                data /= 255.
+            images.append(data.reshape(params.image_size, params.image_size, 1))
     
     # TODO: should labels be one-hot encoded? these are just label encoded atm.
     dataset = tf.data.Dataset.from_tensor_slices((np.array(images), np.array(labels)))
@@ -68,7 +72,7 @@ def resize(params):
         
         logging.info(f'resizing and copying {len(files)} files from {from_dir} to {to_dir}')
         
-        for file in tqdm(files, desc='files', unit='file'):
+        for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
             image = utilities.read_file(file).reshape(*from_shape)
             # np.expand dims is to change from (H, W) shape to (H, W, C) to appease
             # the tf api. C is channel, e.g. 1 for grayscale, 3 for RGB, 4 for RGBA.
@@ -91,6 +95,7 @@ if __name__ == '__main__':
     ap.add_argument('--data-dir', type=str, default='./data', help=r'data directory for reference data')
     ap.add_argument('--save-dir', type=str, default=None, help=r'override default behavior by specifying this directory to save model artifacts in')
     ap.add_argument('--image-limit', type=int, default=0, help=r'limit for number of images per class to load. default value 0 loads all images. this is a factor of images by classes.')
+    ap.add_argument('--image-size', type=int, default=648, help=r'image dimensions')
     ap.add_argument('--from-image-size', type=int, default=648, help=r'image dimensions')
     ap.add_argument('--to-image-size', type=int, help=r'image dimensions to resize to when --mode=resize')
     ap.add_argument('--mode', type=str, choices=['test', 'resize'],
@@ -118,6 +123,7 @@ if __name__ == '__main__':
     # look at more closely w.r.t. data loss.
     # TODO: use tf's ResizeMethod enum here, not a string
     #ap.add_argument('--resize-method', type=str, default='nearest', help='tensorflow image.#ResizeMethod value')
+    ap.add_argument('--normalize', type=bool, default=True, help=r'squeeze pixel value range to [0, 1]')
     args = ap.parse_args()
     
     from collections import namedtuple
@@ -126,7 +132,7 @@ if __name__ == '__main__':
     params = mock_parameters(**vars(args))
     
     if params.mode == 'test':
-        ds = get_ds(params)
+        ds = load(params)
         logging.info(f'loaded {len(ds)} files. dataset metadata: {ds}')
     elif params.mode == 'resize':
         resize(params)
