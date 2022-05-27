@@ -4,6 +4,7 @@ import logging
 import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
+from tensorflow.keras import metrics
 import tensorflow_addons as tfa
 
 import dataset
@@ -15,7 +16,6 @@ def train(params, model, data_split):
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        batch_size = params.batch_size,
                         # class weight for benign, which there are 2x fewer of
                         class_weight = {0: params.class_weight},
                         shuffle = True,
@@ -85,6 +85,8 @@ def main():
     if params.model == 'cnn':
         model = cnn.get_model(params)
     
+    model.build((None, params.image_size, params.image_size, 1))
+    
     if params.verbose or params.describe:
         # just uses print, and logging.info produces some ugly stuff if used with print_fn arg
         model.summary()
@@ -92,8 +94,8 @@ def main():
             return
     
     model.compile(optimizer=params.optimizer,
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-                  metrics=['accuracy', 'precision', 'recall', tfa.metrics.F1Score(num_classes=2)],
+                  loss=tf.keras.losses.CategoricalCrossentropy(),
+                  metrics=['accuracy', metrics.Precision(), metrics.Recall(), tfa.metrics.F1Score(num_classes=2)],
                   )
     
     if params.use_gpu:

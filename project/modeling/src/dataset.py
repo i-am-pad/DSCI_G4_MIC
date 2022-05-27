@@ -16,10 +16,10 @@ def train_valid_test_split(params, dataset: tf.data.Dataset):
     validation_size = int(params.valid_split * len(dataset))
     
     result = {}
-    result['train'] = dataset.take(train_size)
+    result['train'] = dataset.take(train_size).cache().batch(params.batch_size)
     remaining = dataset.skip(train_size)
-    result['validation'] = remaining.take(validation_size)
-    result['test'] = remaining.skip(validation_size)
+    result['validation'] = remaining.take(validation_size).cache().batch(params.batch_size)
+    result['test'] = remaining.skip(validation_size).cache().batch(params.batch_size)
     
     return result
 
@@ -37,13 +37,11 @@ def load(params):
         labels.extend([label_value] * len(files))
         for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
             data = utilities.read_file(file).astype('float64')
-            if params.normalize:
-                # normalize pixel's color value to [0, 1] range from [0, 255]
-                data /= 255.
             images.append(data.reshape(params.image_size, params.image_size, 1))
     
     # TODO: should labels be one-hot encoded? these are just label encoded atm.
-    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), np.array(labels)))
+    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
+                                                  tf.keras.utils.to_categorical(np.array(labels))))
     
     return dataset
 
