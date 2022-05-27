@@ -16,10 +16,10 @@ def train_valid_test_split(params, dataset: tf.data.Dataset):
     validation_size = int(params.valid_split * len(dataset))
     
     result = {}
-    result['train'] = dataset.take(train_size).cache().batch(params.batch_size)
+    result['train'] = dataset.take(train_size).cache().batch(params.batch_size, drop_remainder=True)
     remaining = dataset.skip(train_size)
-    result['validation'] = remaining.take(validation_size).cache().batch(params.batch_size)
-    result['test'] = remaining.skip(validation_size).cache().batch(params.batch_size)
+    result['validation'] = remaining.take(validation_size).cache().batch(params.batch_size, drop_remainder=True)
+    result['test'] = remaining.skip(validation_size).cache().batch(params.batch_size, drop_remainder=True)
     
     return result
 
@@ -42,6 +42,7 @@ def load(params):
     # TODO: should labels be one-hot encoded? these are just label encoded atm.
     dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
                                                   tf.keras.utils.to_categorical(np.array(labels))))
+                                                  #np.array(labels)))
     
     return dataset
 
@@ -83,7 +84,7 @@ def resize(params):
             utilities.write_file(to_path, image_resized)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         )

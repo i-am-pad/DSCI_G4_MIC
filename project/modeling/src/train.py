@@ -23,8 +23,8 @@ def train(params, model, data_split):
                         )
     
     if params.show_model_evaluation:
+        print(history.history.keys())
         plt.plot(history.history['accuracy'], label='accuracy')
-        plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
         plt.xlabel('Epoch')
         plt.ylabel('Accuracy')
         plt.ylim([0.5, 1])
@@ -32,6 +32,7 @@ def train(params, model, data_split):
         plt.savefig(os.path.join(params.save_dir, f'{params.model}_{params.trial}_{params.epochs}e_{params.batch_size}b.png'))
 
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
+        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
         
     # TODO
     #if params.save_model_train_data:
@@ -59,7 +60,7 @@ def get_args():
     
     # training
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-train-data is enabled')
-    ap.add_argument('--epochs', type=int, default=30)
+    ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--class-weight', type=int, default=2, help='imbalance factor applied to benign class, which there are 2x fewer of')
     ap.add_argument('--show-model-evaluation', type=bool, action=argparse.BooleanOptionalAction, default=True, help='produces model evaluation information following training')
     
@@ -70,10 +71,11 @@ def get_args():
     # HELP
     ap.add_argument('--describe', action=argparse.BooleanOptionalAction, help='prints model architecture and exits')
     ap.add_argument('--verbose', action=argparse.BooleanOptionalAction, help='prints model architecture and exits')
+    ap.add_argument('--debug', action=argparse.BooleanOptionalAction, help='enables dumping debug info')
     return ap.parse_args()
 
 def main():
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         )
@@ -81,6 +83,14 @@ def main():
     
     args = get_args()
     params = parameters.Parameters(**vars(args))
+    
+    if params.debug:
+        tf.debugging.experimental.enable_dump_debug_info(
+            params.save_dir,
+            tensor_debug_mode='FULL_HEALTH',
+            circular_buffer_size=1000,
+        )
+        tf.debugging.disable_traceback_filtering()
     
     if params.model == 'cnn':
         model = cnn.get_model(params)
@@ -95,11 +105,18 @@ def main():
     
     model.compile(optimizer=params.optimizer,
                   loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=['accuracy', metrics.Precision(), metrics.Recall(), tfa.metrics.F1Score(num_classes=2)],
+                  #loss=tf.keras.losses.BinaryCrossentropy(),
+                  metrics=[
+                      'accuracy',
+                      metrics.Precision(),
+                      metrics.Recall(),
+                      tfa.metrics.F1Score(num_classes=2)
+                      ],
                   )
     
-    if params.use_gpu:
-        model = utilities.to_gpu(model)
+    # TODO: torch -> tf params.use_gpu
+    #if params.use_gpu:
+    #    model = utilities.to_gpu(model)
     
     data = dataset.load(params)
     data_split = dataset.train_valid_test_split(params, data)
