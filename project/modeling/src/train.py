@@ -13,6 +13,9 @@ import parameters
 import utilities
 
 def train(params, model, data_split):
+    checkpoints_path = os.path.join(params.save_dir,
+                                    f'{params.model}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
+    
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
@@ -25,24 +28,37 @@ def train(params, model, data_split):
                         #       to use this
                         #shuffle = True,
                         
+                        callbacks = [
+                            tf.keras.callbacks.ModelCheckpoint(
+                                filepath = checkpoints_path,
+                                monitor='val_accuracy',
+                                mode='max',
+                                save_best_only=True,
+                            )
+                        ],
+                        
                         verbose = params.verbose,
                         )
     
-    if params.show_model_evaluation:
-        print(history.history.keys())
-        plt.plot(history.history['accuracy'], label='accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.ylim([0.5, 1])
-        plt.legend(loc='lower right')
-        plt.savefig(os.path.join(params.save_dir, f'{params.model}_{params.trial}_{params.epochs}e_{params.batch_size}b.png'))
+    test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
+    logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+    
+    if params.save_model_evaluation:
+        save_plots(params, history)
 
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
-        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
-
-    # TODO
-    #if params.save_model_train_data:
-    #    ...
+def save_plots(params, history):
+    logging.info('saving training metrics plots...')
+    # TODO: this is way too generic to produce anything intelligible. it needs to be
+    #       multiple axes, separated by split (train, validation, test)
+    for metric in history.history.keys():
+        plt.plot(history.history[metric], label=metric)
+    
+    plt.ylim([0.5, 1])
+    plt.title('Training Metrics')
+    plt.xlabel('Epoch')
+    plt.ylabel('Value')
+    plt.legend(loc='lower right')
+    plt.savefig(os.path.join(params.save_dir, f'{params.model}_{params.trial}_{params.epochs}e_{params.batch_size}b.png'))
 
 def get_args():
     import argparse
@@ -65,11 +81,11 @@ def get_args():
     ap.add_argument('--optimizer', type=str, default='adam', help='default is adam. see the following for alternatives: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
     
     # training
-    ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-train-data is enabled')
+    ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
     ap.add_argument('--class-weight', type=int, default=2, help='imbalance factor applied to benign class, which there are 2x fewer of')
-    ap.add_argument('--show-model-evaluation', type=bool, action=argparse.BooleanOptionalAction, default=True, help='produces model evaluation information following training')
+    ap.add_argument('--save-model-evaluation', type=bool, action=argparse.BooleanOptionalAction, default=True, help='saves model evaluation information to --save-dir following training')
     
     # cnn
     # ...

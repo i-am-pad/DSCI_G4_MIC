@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 
-import logging
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers, models
-
-import dataset
-import parameters
 
 def get_model(params):
     '''straight out of the tutorial: https://www.tensorflow.org/tutorials/images/cnn#create_the_convolutional_base

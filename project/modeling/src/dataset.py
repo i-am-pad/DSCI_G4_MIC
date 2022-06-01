@@ -5,7 +5,6 @@ from itertools import chain
 import logging
 import numpy as np
 import os
-import pandas as pd
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 from tqdm import tqdm
