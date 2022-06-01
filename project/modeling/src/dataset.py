@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import glob
+from itertools import chain
 import logging
 import numpy as np
 import os
@@ -15,15 +16,32 @@ def train_valid_test_split(params, dataset: tf.data.Dataset):
     train_size = int(params.train_split * len(dataset))
     validation_size = int(params.valid_split * len(dataset))
     
+    # https://www.tensorflow.org/api_docs/python/tf/data/Dataset#batch
+    batch_args = {
+        'batch_size': params.batch_size,
+        'drop_remainder': True,
+        #'num_parallel_calls': tf.data.AUTOTUNE,
+        #'deterministic': True,
+    }
+    
     result = {}
-    result['train'] = dataset.take(train_size).cache().batch(params.batch_size, drop_remainder=True)
+    result['train'] = (dataset
+                       .take(train_size)
+                       .batch(**batch_args)
+                      )
     remaining = dataset.skip(train_size)
-    result['validation'] = remaining.take(validation_size).cache().batch(params.batch_size, drop_remainder=True)
-    result['test'] = remaining.skip(validation_size).cache().batch(params.batch_size, drop_remainder=True)
+    result['validation'] = (remaining
+                            .skip(validation_size)
+                            .batch(**batch_args)
+                            )
+    result['test'] = (remaining
+                      .take(validation_size)
+                      .batch(**batch_args)
+                     )
     
     return result
 
-def load(params):
+def load(params, dtype='uint8'):
     label_classes = {'benign': 0, 'malicious': 1}
     
     images = []
@@ -32,19 +50,57 @@ def load(params):
         dir = os.path.join(params.data_dir, label_name)
         files = glob.glob(os.path.join(dir, '*'))
         if params.image_limit:
-            files = files[:params.image_limit]
+            limit = int(len(files) * params.image_limit)
+            files = files[:limit]
         
         labels.extend([label_value] * len(files))
         for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
             data = utilities.read_file(file).astype('float64')
             images.append(data.reshape(params.image_size, params.image_size, 1))
     
-    # TODO: should labels be one-hot encoded? these are just label encoded atm.
     dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
                                                   tf.keras.utils.to_categorical(np.array(labels))))
                                                   #np.array(labels)))
     
     return dataset
+ 
+class G4MicDataGenerator(tf.keras.utils.Sequence):
+    '''this is a work around to the memory limitations of loading the entirety of this dataset.
+    it loads images into host (GPU) memory only in batch sized blocks.
+    '''
+    
+    def __init__(self, params, split):
+        self._params = params
+        self._split = split
+        self.labels = {'benign': 0, 'malicious': 1}
+        
+        filepaths = [ glob.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.labels.keys() ]
+        if params.image_limit:
+            # applies file limit by class
+            filepaths = [ fps[:int(len(fps) * params.image_limit)] for fps in filepaths ]
+        # flattens the rsult
+        self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
+  
+    def __len__(self):
+        return len(self._filepaths) // self._params.batch_size
+   
+    def __getitem__(self, index):
+        batch_filepaths = self._filepaths[index*self._params.batch_size : (index+1)*self._params.batch_size]
+        images = []
+        labels = []
+        for fp in batch_filepaths:
+            data = utilities.read_file(fp, dtype='float32')
+            images.append(tf.convert_to_tensor(data.reshape(self._params.image_size, self._params.image_size, 1), ))
+            labels.append(self.labels['benign'] if 'benign' in fp else self.labels['malicious'])
+        
+        # to_categorical applies one-hot encoding to label encoding
+        return tf.convert_to_tensor(images), tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.labels))
+
+def load_generators(params):
+    return {
+        split: G4MicDataGenerator(params, split)
+        for split in ['train', 'validation', 'test']
+    }
 
 def resize(params):
     label_classes = {'benign': 0, 'malicious': 1}

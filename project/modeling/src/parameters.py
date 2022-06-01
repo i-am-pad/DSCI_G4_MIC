@@ -4,7 +4,7 @@ class Parameters:
     '''configuration holder'''
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size, use_gpu,
-                 trial, epochs, class_weight, show_model_evaluation,
+                 trial, epochs, batch_size, class_weight, show_model_evaluation,
                  model, mode, optimizer,
                  describe, verbose, debug,
                  **kwargs):
@@ -30,10 +30,10 @@ class Parameters:
         # training
         self.trial = trial
         self.epochs = epochs
+        self.batch_size = batch_size
         self.class_weight = class_weight
         self.show_model_evaluation = show_model_evaluation
         
-        self.batch_size = 32
         self.learning_rate = 0.001
         self.weight_decay = 0.01
         
