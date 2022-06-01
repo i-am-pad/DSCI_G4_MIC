@@ -14,7 +14,7 @@ import utilities
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
-                                    f'{params.model}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
+                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
@@ -98,14 +98,17 @@ def get_args():
     return ap.parse_args()
 
 def main():
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        )
     tf.random.set_seed(42)
     
     args = get_args()
     params = parameters.Parameters(**vars(args))
+    
+    logging.basicConfig(#filename=os.path.join(params.save_dir, 'train.log'),
+                        #filemode='a',
+                        level=logging.INFO,
+                        format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        )
     
     if params.debug:
         # noisy and purpose is unclear:
