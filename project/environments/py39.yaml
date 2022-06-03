@@ -31,7 +31,7 @@ dependencies:
   - c-ares=1.18.1=h7f8727e_0
   - ca-certificates=2022.4.26=h06a4308_0
   - cachetools=4.2.2=pyhd3eb1b0_0
-  - certifi=2021.10.8=py39h06a4308_2
+  - certifi=2022.5.18.1=py39h06a4308_0
   - cffi=1.15.0=py39hd667e15_1
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - click=8.0.4=py39h06a4308_0
@@ -41,6 +41,7 @@ dependencies:
   - cudatoolkit=11.3.1=h2bc3f7f_2
   - cudnn=8.2.1=cuda11.3_0
   - cycler=0.11.0=pyhd3eb1b0_0
+  - cython=0.29.28=py39h295c915_0
   - dataclasses=0.8=pyh6d0b6a4_7
   - dbus=1.13.18=hb2f20db_0
   - debugpy=1.5.1=py39h295c915_0
@@ -55,13 +56,14 @@ dependencies:
   - freetype=2.11.0=h70c0345_0
   - frozenlist=1.2.0=py39h7f8727e_0
   - gast=0.4.0=pyhd3eb1b0_0
+  - gensim=4.1.2=py39h295c915_0
   - giflib=5.2.1=h7b6447c_0
   - glib=2.69.1=h4ff587b_1
   - gmp=6.2.1=h2531618_2
   - gnutls=3.6.15=he1e5248_0
   - google-api-core=1.25.1=pyhd3eb1b0_0
   - google-auth=1.33.0=pyhd3eb1b0_0
-  - google-auth-oauthlib=0.4.4=pyhd3eb1b0_0
+  - google-auth-oauthlib=0.4.1=py_2
   - google-cloud-core=1.7.1=pyhd3eb1b0_0
   - google-cloud-storage=1.31.0=py_0
   - google-crc32c=1.1.2=py39h27cfd23_0
@@ -152,6 +154,7 @@ dependencies:
   - ncurses=6.3=h7f8727e_2
   - nest-asyncio=1.5.5=py39h06a4308_0
   - nettle=3.7.3=hbbd107a_1
+  - nltk=3.7=pyhd3eb1b0_0
   - notebook=6.4.11=py39h06a4308_0
   - numexpr=2.8.1=py39h6abb31d_0
   - numpy=1.21.5=py39he7a7128_1
@@ -199,6 +202,7 @@ dependencies:
   - pyzmq=22.3.0=py39h295c915_2
   - qt=5.9.7=h5867ecd_1
   - readline=8.1.2=h7f8727e_1
+  - regex=2022.3.15=py39h7f8727e_0
   - reproc=14.2.4=h295c915_1
   - reproc-cpp=14.2.4=h295c915_1
   - requests=2.27.1=pyhd3eb1b0_0
@@ -212,6 +216,7 @@ dependencies:
   - setuptools=61.2.0=py39h06a4308_0
   - sip=4.19.13=py39h295c915_0
   - six=1.16.0=pyhd3eb1b0_1
+  - smart_open=5.2.1=py39h06a4308_0
   - sniffio=1.2.0=py39h06a4308_1
   - soupsieve=2.3.1=pyhd3eb1b0_0
   - sqlite=3.38.3=hc218d9a_0

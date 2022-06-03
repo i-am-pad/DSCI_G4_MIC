@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from datetime import datetime
 import logging
 import matplotlib.pyplot as plt
 import os
@@ -15,6 +16,8 @@ import utilities
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
                                     f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
+    tb_log_path = os.path.join(params.save_dir,
+                               f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
@@ -34,7 +37,9 @@ def train(params, model, data_split):
                                 monitor='val_accuracy',
                                 mode='max',
                                 save_best_only=True,
-                            )
+                            ),
+                            # https://www.tensorflow.org/tensorboard/graphs
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path)
                         ],
                         
                         verbose = params.verbose,
