@@ -28,7 +28,6 @@ class TrainParameters:
         self.epochs = epochs
         self.batch_size = batch_size
         self.class_weight = class_weight
-        self.save_model_evaluation = save_model_evaluation
         
         self.learning_rate = 0.001
         self.weight_decay = 0.01
