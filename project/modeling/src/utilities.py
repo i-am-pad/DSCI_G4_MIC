@@ -29,4 +29,4 @@ def load_model(model_dir, has_f1=True):
             return metric.result()
         custom_objects = {'f1': f1}
     
-    return tf.keras.models.load_model(model_dir, compile=False, custom_objects=custom_objects)
+    return tf.keras.models.load_model(model_dir.rstrip('/'), compile=False, custom_objects=custom_objects)

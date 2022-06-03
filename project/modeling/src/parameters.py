@@ -1,11 +1,11 @@
 import tensorflow as tf
 
-class Parameters:
+class TrainParameters:
     '''configuration holder'''
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size, use_gpu,
                  trial, epochs, batch_size, class_weight, save_model_evaluation,
-                 model, mode, optimizer,
+                 model, optimizer,
                  describe, verbose, debug,
                  **kwargs):
         ###############################
@@ -16,15 +16,11 @@ class Parameters:
         self.image_limit = image_limit
         self.image_size = image_size
         self.use_gpu = use_gpu and len(tf.config.list_physical_devices('GPU'))
-        
-        self.train_split = 0.7
-        self.valid_split = 0.2
         self.normalize = True
                 
         ###############################
         # MODEL
         self.model = model
-        self.mode = mode
         self.optimizer = optimizer
         
         # training
@@ -39,6 +35,34 @@ class Parameters:
         
         # cnn
         # ...
+        
+        ###############################
+        # HELP
+        self.describe = describe
+        self.verbose = verbose
+        self.debug = debug
+
+class InferParameters:
+    '''configuration holder'''
+    def __init__(self,
+                 image_files, image_size, model_dir, save_dir, use_gpu,
+                 plot_layer_activations,
+                 describe, verbose, debug,
+                 **kwargs):
+        ###############################
+        # DATA
+        
+        self.image_files = image_files
+        self.image_size = image_size
+        self.model_dir = model_dir
+        self.save_dir = save_dir
+        self.use_gpu = use_gpu and len(tf.config.list_physical_devices('GPU'))
+        
+        self.normalize = True
+             
+        #######################
+        # MODE
+        self.plot_layer_activations = plot_layer_activations
         
         ###############################
         # HELP

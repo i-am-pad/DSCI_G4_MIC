@@ -9,6 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import tensorflow as tf
 from tqdm import tqdm
 
+import parameters
 import utilities
 
 def train_valid_test_split(params, dataset: tf.data.Dataset):
@@ -40,6 +41,20 @@ def train_valid_test_split(params, dataset: tf.data.Dataset):
     
     return result
 
+def load_from_files(params: parameters.InferParameters):
+    images = []
+    labels = []
+    for path in params.image_files[0]: # TODO: why is this a list of lists instead of just a list?
+        data = utilities.read_file(path).astype('float32')
+        # batch, height, width, channels
+        images.append(data.reshape(1, params.image_size, params.image_size, 1))
+        labels.append(G4MicDataGenerator.LABELS['benign'] if 'benign' in path else G4MicDataGenerator.LABELS['malicious'])
+    
+    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
+                                                tf.keras.utils.to_categorical(np.array(labels))))
+    
+    return dataset
+
 def load(params, dtype='uint8'):
     label_classes = {'benign': 0, 'malicious': 1}
     
@@ -54,7 +69,7 @@ def load(params, dtype='uint8'):
         
         labels.extend([label_value] * len(files))
         for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
-            data = utilities.read_file(file).astype('float64')
+            data = utilities.read_file(file).astype('float32')
             images.append(data.reshape(params.image_size, params.image_size, 1))
     
     dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
@@ -67,13 +82,13 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
     '''this is a work around to the memory limitations of loading the entirety of this dataset.
     it loads images into host (GPU) memory only in batch sized blocks.
     '''
+    LABELS = {'benign': 0, 'malicious': 1}
     
     def __init__(self, params, split):
         self._params = params
         self._split = split
-        self.labels = {'benign': 0, 'malicious': 1}
         
-        filepaths = [ glob.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.labels.keys() ]
+        filepaths = [ glob.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.LABELS.keys() ]
         if params.image_limit:
             # applies file limit by class
             filepaths = [ fps[:int(len(fps) * params.image_limit)] for fps in filepaths ]
@@ -90,10 +105,10 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         for fp in batch_filepaths:
             data = utilities.read_file(fp, dtype='float32')
             images.append(tf.convert_to_tensor(data.reshape(self._params.image_size, self._params.image_size, 1), ))
-            labels.append(self.labels['benign'] if 'benign' in fp else self.labels['malicious'])
+            labels.append(self.LABELS['benign'] if 'benign' in fp else self.LABELS['malicious'])
         
         # to_categorical applies one-hot encoding to label encoding
-        return tf.convert_to_tensor(images), tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.labels))
+        return tf.convert_to_tensor(images), tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
 
 def load_generators(params):
     return {

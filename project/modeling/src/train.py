@@ -77,7 +77,6 @@ def get_args():
     # MODEL
     
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
-    ap.add_argument('--mode', type=str, choices=['train', 'eval'])
     ap.add_argument('--optimizer', type=str, default='adam', help='default is adam. see the following for alternatives: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
     
     # training
@@ -101,23 +100,14 @@ def main():
     tf.random.set_seed(42)
     
     args = get_args()
-    params = parameters.Parameters(**vars(args))
+    params = parameters.TrainParameters(**vars(args))
     
-    logging.basicConfig(#filename=os.path.join(params.save_dir, 'train.log'),
-                        #filemode='a',
-                        level=logging.INFO,
+    logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         )
     
     if params.debug:
-        # noisy and purpose is unclear:
-        #
-        #tf.debugging.experimental.enable_dump_debug_info(
-        #    params.save_dir,
-        #    tensor_debug_mode='FULL_HEALTH',
-        #    circular_buffer_size=1000,
-        #)
         tf.debugging.disable_traceback_filtering()
     
     if params.model == 'cnn':
@@ -133,7 +123,6 @@ def main():
     
     model.compile(optimizer=params.optimizer,
                   loss=tf.keras.losses.CategoricalCrossentropy(),
-                  #loss=tf.keras.losses.BinaryCrossentropy(),
                   metrics=[
                       'accuracy',
                       metrics.Precision(),
@@ -155,14 +144,7 @@ def main():
     # but much less likely to run into OOM issues.
     data_split = dataset.load_generators(params)
     
-    if params.mode == 'train':
-        train(params, model, data_split)
-    elif params.mode == 'eval':
-        pass
-    elif params.mode == 'test':
-        return
-    else:
-        return
+    train(params, model, data_split)
 
 if __name__ == '__main__':
     main()
