@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import tensorflow as tf
-from tensorflow.keras import metrics
-import tensorflow_addons as tfa
+from tensorflow.python.lib.io import file_io
 
 import dataset
 from models import cnn
@@ -29,7 +28,10 @@ def plot_layer_activations(params, model, data_split, images_per_row=16):
 
     save_path = os.path.join(params.save_dir,
                             f'{os.path.basename(params.model_dir)}_original_image.png')
-    plt.imsave(save_path, image.numpy().reshape(params.image_size, params.image_size), vmin=0, vmax=255, cmap='gray')
+    
+    plt.imsave(file_io.FileIO(save_path, 'w'),
+               image.numpy().reshape(params.image_size, params.image_size),
+               vmin=0, vmax=255, cmap='gray')
     
     activations = am.predict(image)
     
@@ -60,8 +62,8 @@ def plot_layer_activations(params, model, data_split, images_per_row=16):
         plt.title(layer_name)
         plt.grid(False)
         save_path = os.path.join(params.save_dir,
-                                    f'{os.path.basename(params.model_dir)}_{layer_ix}_{layer_name}_activations.png')
-        plt.imsave(save_path, display_grid, cmap='viridis')
+                                 f'{os.path.basename(params.model_dir)}_{layer_ix}_{layer_name}_activations.png')
+        plt.imsave(file_io.FileIO(save_path, 'w'), display_grid, cmap='viridis')
 
 def infer(params, model, data_split):
     if params.plot_layer_activations:

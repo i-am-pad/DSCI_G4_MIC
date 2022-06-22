@@ -62,19 +62,18 @@ def load(params, dtype='uint8'):
     labels = []
     for label_name, label_value in label_classes.items():
         dir = os.path.join(params.data_dir, label_name)
-        files = glob.glob(os.path.join(dir, '*'))
+        files = tf.io.gfile.glob(os.path.join(dir, '*'))
         if params.image_limit:
             limit = int(len(files) * params.image_limit)
             files = files[:limit]
         
         labels.extend([label_value] * len(files))
         for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
-            data = utilities.read_file(file).astype('float32')
+            data = utilities.read_file(file, dtype='float32')
             images.append(data.reshape(params.image_size, params.image_size, 1))
     
     dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
                                                   tf.keras.utils.to_categorical(np.array(labels))))
-                                                  #np.array(labels)))
     
     return dataset
  
@@ -88,7 +87,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         self._params = params
         self._split = split
         
-        filepaths = [ glob.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.LABELS.keys() ]
+        filepaths = [ tf.io.gfile.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.LABELS.keys() ]
         if params.image_limit:
             # applies file limit by class
             filepaths = [ fps[:int(len(fps) * params.image_limit)] for fps in filepaths ]
@@ -132,10 +131,10 @@ def resize(params):
     for label_name, label_value in label_classes.items():
         from_dir = os.path.join(params.data_dir, label_name)
         to_dir = os.path.join(to_dir_base, label_name)
-        if not os.path.exists(to_dir):
-            os.mkdir(to_dir)
+        if not tf.io.gfile.exists(to_dir):
+            tf.io.gfile.mkdir(to_dir)
         
-        files = glob.glob(os.path.join(from_dir, '*'))
+        files = tf.io.gfile.glob(os.path.join(from_dir, '*'))
         if params.image_limit:
             files = files[:params.image_limit]
         
