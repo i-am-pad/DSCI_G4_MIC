@@ -119,16 +119,6 @@ def main():
                   run_eagerly=params.debug,
                   )
     
-    # TODO: torch -> tf params.use_gpu? do you just get this for free if detected w/ tensorflow?
-    #if params.use_gpu:
-    #    model = utilities.to_gpu(model)
-    
-    # this fails due to OOM on host (GPU) pretty easily!
-    #data = dataset.load(params)
-    #data_split = dataset.train_valid_test_split(params, data)
-    
-    # this loads only single batches of images in memory at a time,
-    # but much less likely to run into OOM issues.
     data_split = dataset.load_generators(params)
     
     train(params, model, data_split)
