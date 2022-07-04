@@ -87,12 +87,23 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         self._params = params
         self._split = split
         
-        filepaths = [ tf.io.gfile.glob(os.path.join(params.data_dir, split, label, '*')) for label in self.LABELS.keys() ]
+        filepaths = [ tf.io.gfile.glob(os.path.join(params.data_dir, label, '*')) for label in self.LABELS.keys() ]
         if params.image_limit:
             # applies file limit by class
-            filepaths = [ fps[:int(len(fps) * params.image_limit)] for fps in filepaths ]
-        # flattens the rsult
+            filepaths = [ fps[:params.image_limit] for fps in filepaths ]
+        # flattens the result
         self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
+        
+        train_size = int(params.train_size * len(self._filepaths))
+        validation_size = int(params.validation_size * len(self._filepaths))
+        #test_size = len(self._filepaths) - train_size - validation_size
+        
+        if split == 'train':
+            self._filepaths = self._filepaths[:train_size]
+        elif split == 'validation':
+            self._filepaths = self._filepaths[train_size : train_size + validation_size]
+        elif split == 'test':
+            self._filepaths = self._filepaths[train_size + validation_size :]
   
     def __len__(self):
         return len(self._filepaths) // self._params.batch_size
