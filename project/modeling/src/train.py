@@ -9,7 +9,7 @@ from tensorflow.keras import metrics
 import tensorflow_addons as tfa
 
 import dataset
-from models import cnn
+from models import model
 import parameters
 import utilities
 
@@ -37,9 +37,10 @@ def train(params, model, data_split):
                                 monitor='val_accuracy',
                                 mode='max',
                                 save_best_only=True,
+                                h5py_format=True,
                             ),
                             # https://www.tensorflow.org/tensorboard/graphs
-                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path)
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, )
                         ],
                         
                         verbose = params.verbose,
@@ -57,15 +58,15 @@ def get_args():
     
     ap.add_argument('--data-dir', type=str, default='./data', help=r'data directory for reference data')
     ap.add_argument('--save-dir', type=str, default='./data', help=r'directory for saving data to')
-    ap.add_argument('--image-limit', type=float, default=0, help=r'proportional limit between 0 (1%) and 1 (100%) for number of images to load. default value 0 loads all images.')
+    ap.add_argument('--image-limit', type=float, default=0, help=r'proportional limit between 0 and 1 for number of images to load. default value 0 loads all images.')
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
-    ap.add_argument('--use-gpu', type=bool, action=argparse.BooleanOptionalAction, default=False)
     
     #######################
     # MODEL
     
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
-    ap.add_argument('--optimizer', type=str, default='adam', help='default is adam. see the following for alternatives: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
+    ap.add_argument('--model-version', type=str, choices=['v1'], default='', required=False)
+    ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
     
     # training
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
@@ -83,11 +84,11 @@ def get_args():
     ap.add_argument('--debug', action=argparse.BooleanOptionalAction, help='enables dumping debug info')
     return ap.parse_args()
 
-def main():
-    tf.random.set_seed(42)
-    
+def init():
     args = get_args()
     params = parameters.TrainParameters(**vars(args))
+    
+    tf.random.set_seed(42)
     
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
@@ -96,28 +97,19 @@ def main():
     
     if params.debug:
         tf.debugging.disable_traceback_filtering()
+        tf.debugging.set_log_device_placement(True)
     
-    if params.model == 'cnn':
-        model = cnn.get_model(params)
+    return params
+
+def main():
+    params = init()
     
-    model.build((None, params.image_size, params.image_size, 1))
+    model = model.get_model(params)
     
     if params.verbose or params.describe:
-        # just uses print, and logging.info produces some ugly stuff if used with print_fn arg
         model.summary()
         if params.describe:
             return
-    
-    model.compile(optimizer=params.optimizer,
-                  loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[
-                      'accuracy',
-                      metrics.Precision(),
-                      metrics.Recall(),
-                      tfa.metrics.F1Score(num_classes=2)
-                      ],
-                  run_eagerly=params.debug,
-                  )
     
     data_split = dataset.load_generators(params)
     
