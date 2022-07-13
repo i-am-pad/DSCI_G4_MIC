@@ -6,7 +6,7 @@ class TrainParameters:
                  data_dir, save_dir, image_limit, image_size,
                  trial, epochs, batch_size, class_weight,
                  create_channel_dummies, use_imagenet_weights,
-                 model, model_version, optimizer,
+                 model, model_version, optimizer, learning_rate,
                  describe, verbose, debug,
                  **kwargs):
         ###############################
@@ -22,9 +22,10 @@ class TrainParameters:
         # MODEL
         self.model = model
         self.model_version = model_version
-        self.optimizer = optimizer
         
         # training
+        self.optimizer = optimizer
+        self.learning_rate = learning_rate
         self.trial = trial
         self.epochs = epochs
         self.batch_size = batch_size
@@ -33,7 +34,6 @@ class TrainParameters:
         self.validation_size = 0.2
         #self.test_size = 1. - self.train_size - self.validation_size
         
-        self.learning_rate = 0.001
         self.weight_decay = 0.01
         
         # cnn

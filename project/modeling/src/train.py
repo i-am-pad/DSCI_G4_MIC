@@ -15,17 +15,14 @@ import utilities
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
-                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
+                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd')
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        
-                        # TODO: this doesn't work! how does this argument actually work?
-                        # class weight for benign, which there are 2x fewer of
-                        #class_weight = {0: params.class_weight},
+                        class_weight = {0: params.class_weight, 1: 1.},
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this
@@ -66,13 +63,14 @@ def get_args():
     
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
     ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_mpncov_v1'], default='', required=False)
-    ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
     
     # training
+    ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
+    ap.add_argument('--learning-rate', type=float, default=0.001, help='learning rate for optimizer')
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
-    ap.add_argument('--class-weight', type=int, default=2, help='imbalance factor applied to benign class, which there are 2x fewer of')
+    ap.add_argument('--class-weight', type=float, default=2., help='imbalance factor applied to benign class, which there are 2x fewer of')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
