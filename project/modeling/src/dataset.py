@@ -12,71 +12,6 @@ from tqdm import tqdm
 import parameters
 import utilities
 
-def train_valid_test_split(params, dataset: tf.data.Dataset):
-    train_size = int(params.train_split * len(dataset))
-    validation_size = int(params.valid_split * len(dataset))
-    
-    # https://www.tensorflow.org/api_docs/python/tf/data/Dataset#batch
-    batch_args = {
-        'batch_size': params.batch_size,
-        'drop_remainder': True,
-        #'num_parallel_calls': tf.data.AUTOTUNE,
-        #'deterministic': True,
-    }
-    
-    result = {}
-    result['train'] = (dataset
-                       .take(train_size)
-                       .batch(**batch_args)
-                      )
-    remaining = dataset.skip(train_size)
-    result['validation'] = (remaining
-                            .skip(validation_size)
-                            .batch(**batch_args)
-                            )
-    result['test'] = (remaining
-                      .take(validation_size)
-                      .batch(**batch_args)
-                     )
-    
-    return result
-
-def load_from_files(params: parameters.InferParameters):
-    images = []
-    labels = []
-    for path in params.image_files[0]: # TODO: why is this a list of lists instead of just a list?
-        data = utilities.read_file(path).astype('float32')
-        # batch, height, width, channels
-        images.append(data.reshape(1, params.image_size, params.image_size, 1))
-        labels.append(G4MicDataGenerator.LABELS['benign'] if 'benign' in path else G4MicDataGenerator.LABELS['malicious'])
-    
-    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
-                                                tf.keras.utils.to_categorical(np.array(labels))))
-    
-    return dataset
-
-def load(params, dtype='uint8'):
-    label_classes = {'benign': 0, 'malicious': 1}
-    
-    images = []
-    labels = []
-    for label_name, label_value in label_classes.items():
-        dir = os.path.join(params.data_dir, label_name)
-        files = tf.io.gfile.glob(os.path.join(dir, '*'))
-        if params.image_limit:
-            limit = int(len(files) * params.image_limit)
-            files = files[:limit]
-        
-        labels.extend([label_value] * len(files))
-        for file in tqdm(files, desc=f'files ({label_name})', unit='file'):
-            data = utilities.read_file(file, dtype='float32')
-            images.append(data.reshape(params.image_size, params.image_size, 1))
-    
-    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), 
-                                                  tf.keras.utils.to_categorical(np.array(labels))))
-    
-    return dataset
- 
 class G4MicDataGenerator(tf.keras.utils.Sequence):
     '''this is a work around to the memory limitations of loading the entirety of this dataset.
     it loads images into host (GPU) memory only in batch sized blocks.
@@ -98,6 +33,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         validation_size = int(params.validation_size * len(self._filepaths))
         #test_size = len(self._filepaths) - train_size - validation_size
         
+        # TODO: randomize selection of filepaths
         if split == 'train':
             self._filepaths = self._filepaths[:train_size]
         elif split == 'validation':
@@ -114,7 +50,12 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         labels = []
         for fp in batch_filepaths:
             data = utilities.read_file(fp, dtype='float32')
-            images.append(tf.convert_to_tensor(data.reshape(self._params.image_size, self._params.image_size, 1), ))
+            channels = 1
+            data = tf.convert_to_tensor(data.reshape(self._params.image_size, self._params.image_size, channels), )
+            # VGG16 requires images with 3 channels, so this optionally adds dummy channels
+            if self._params.create_channel_dummies:
+                data = tf.concat([data, data, data], axis=-1)
+            images.append(data)
             labels.append(self.LABELS['benign'] if 'benign' in fp else self.LABELS['malicious'])
         
         # to_categorical applies one-hot encoding to label encoding
@@ -170,31 +111,26 @@ if __name__ == '__main__':
                         )
     
     import argparse
-    ap = argparse.ArgumentParser(description='Dataset')
-    ap.add_argument('--data-dir', type=str, default='./data', help=r'data directory for reference data')
+    ap = argparse.ArgumentParser(description='''Dataset Resizing Utility
+    
+    Resizes the dataset --from-image-size to --to-image-size and saves results in a mirror directory with the --to-image-size value included in the top-level directory name as a _HxW suffix.
+    
+    Examples:
+        
+            ./dataset.py --data-dir ./data/images --from-image-size 648 --from-image-size 32
+            
+        This will result in 32x32 results from the 648x648 source in "./data/images" to be produced and saved in a mirrored directory structure under "./data/images_32x32".
+        
+            ./dataset.py --data-dir ./data/images --save-dir ./data/save/new_images --from-image-size 648 --from-image-size 32
+        
+        The difference between this and the last command is just --save-dir. This overrides the default behavior for saving data to use the specified directory "./data/save/new_images" instead of creating a directory beside the original with the image dimensions as a suffix.
+    ''')
+    ap.add_argument('--data-dir', type=str, required=True, help=r'data directory for reference data')
     ap.add_argument('--save-dir', type=str, default=None, help=r'override default behavior by specifying this directory to save model artifacts in')
     ap.add_argument('--image-limit', type=int, default=0, help=r'limit for number of images per class to load. default value 0 loads all images. this is a factor of images by classes.')
     ap.add_argument('--image-size', type=int, default=648, help=r'image dimensions')
     ap.add_argument('--from-image-size', type=int, default=648, help=r'image dimensions')
     ap.add_argument('--to-image-size', type=int, help=r'image dimensions to resize to when --mode=resize')
-    ap.add_argument('--mode', type=str, choices=['test', 'resize'],
-                    help=
-    '''sets the mode for the application.
-    
-    modes:
-        test: loads the dataset as specified and prints its metadata. this is the default.
-          
-        resize: resizes the dataset --from-image-size to --to-image-size and saves results in a mirror directory with the --to-image-size value included in the top-level directory name as a _HxW suffix. for example:
-        
-            ./dataset.py --data-dir ./data/images --from-image-size 648 --from-image-size 32
-            
-        this will result in 32x32 results from the 648x648 source in "./data/images" to be produced and saved in a mirrored directory structure under "./data/images_32x32".
-        
-            ./dataset.py --data-dir ./data/images --save-dir ./data/save/new_images --from-image-size 648 --from-image-size 32
-        
-        the difference between this and the last command is just --save-dir. this overrides the default behavior for saving data to use the specified directory "./data/save/new_images"
-        instead of creating a directory beside the original with the image dimensions as a suffix.
-    ''')
     # see https://www.tensorflow.org/api_docs/python/tf/image/ResizeMethod
     # used in dataset.py with https://www.tensorflow.org/api_docs/python/tf/image/resize#args
     # ctrl+f for bilinear in the 2nd link above, and you'll find a section
@@ -209,9 +145,5 @@ if __name__ == '__main__':
     mock_parameters = namedtuple('Parameters', ' '.join(vars(args).keys()))
     
     params = mock_parameters(**vars(args))
-    
-    if params.mode == 'test':
-        ds = load(params)
-        logging.info(f'loaded {len(ds)} files. dataset metadata: {ds}')
-    elif params.mode == 'resize':
-        resize(params)
+
+    resize(params)

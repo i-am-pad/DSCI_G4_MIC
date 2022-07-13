@@ -4,11 +4,12 @@ import tensorflow as tf
 from tensorflow.keras import layers, metrics
 import tensorflow_addons as tfa
 
-import MPNCOV
+from . import MPNCOV
 
 def get_model_v1(params):
     model = CNN(params)
-    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, 1))
+    channels = 1
+    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, channels))
     model.compile(optimizer=params.optimizer,
                   loss='categorical_crossentropy',
                   metrics=[
@@ -23,7 +24,8 @@ def get_model_v1(params):
 
 def get_model_vgg16_mpncov_v1(params):
     model = VGG16_MPNCOV(params)
-    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, 1))
+    channels = 3
+    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, channels))
     model.compile(optimizer=params.optimizer,
                   loss='categorical_crossentropy',
                   metrics=[
@@ -74,7 +76,12 @@ class VGG16_MPNCOV(tf.keras.Model):
     '''
     def __init__(self, params):
         super(VGG16_MPNCOV, self).__init__()
-        self._vgg16 = tf.keras.applications.VGG16(include_top=False, input_shape=(params.image_size, params.image_size, 1))
+        self._vgg16 = tf.keras.applications.VGG16(include_top=False,
+                                                  weights='imagenet' if params.use_imagenet_weights else None,
+                                                  input_shape=(params.image_size,
+                                                               params.image_size,
+                                                               # vgg16 requires 3 channels
+                                                               3))
         self._mpncov = MPNCOV.MPNCOV(params)
         self._classifier = layers.Dense(2, activation='softmax')
 

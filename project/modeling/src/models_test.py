@@ -12,7 +12,7 @@ import models.model
 import models.cnn
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size trial epochs batch_size class_weight model model_version optimizer describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights model model_version optimizer describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -29,6 +29,7 @@ class ModelsTestCase(unittest.TestCase):
     def setUp(self):
         tf.random.set_seed(42)
         self._cnn_train_params = ModelsTestCase.create_cnn_train_params()
+        self._vgg16_mpncov_train_params = ModelsTestCase.create_vgg16_mpncov_train_params()
     
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
@@ -38,9 +39,30 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=32,
+                        create_channel_dummies=False,
+                        use_imagenet_weights=False,
                         class_weight=2,
                         model='cnn',
-                        model_version='v1',
+                        model_version='cnn_v1',
+                        optimizer='adam',
+                        describe=False,
+                        verbose=True,
+                        debug=False)
+        return parameters.TrainParameters(**args._asdict())
+    
+    def create_vgg16_mpncov_train_params():
+        args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
+                        save_dir='./data',
+                        image_limit=200,
+                        image_size=32,
+                        trial='trial',
+                        epochs=1,
+                        batch_size=32,
+                        class_weight=2,
+                        create_channel_dummies=True,
+                        use_imagenet_weights=True,
+                        model='cnn',
+                        model_version='vgg16_mpncov_v1',
                         optimizer='adam',
                         describe=False,
                         verbose=True,
@@ -51,10 +73,19 @@ class ModelsTestCase(unittest.TestCase):
         model = models.model.get_model(self._cnn_train_params)
         return model
     
+    def create_vgg16_mpncov(self):
+        model = models.model.get_model(self._vgg16_mpncov_train_params)
+        return model
+    
     def test_create_cnn(self):
         model = self.create_cnn()
         self.assertIsNotNone(model)
         self.assertEqual(type(model), models.cnn.CNN)
+    
+    def test_create_vgg16_mpncov(self):
+        model = self.create_vgg16_mpncov()
+        self.assertIsNotNone(model)
+        self.assertEqual(type(model), models.cnn.VGG16_MPNCOV)
     
     def test_create_dataset(self):
         data_split = dataset.load_generators(self._cnn_train_params)
@@ -62,6 +93,13 @@ class ModelsTestCase(unittest.TestCase):
         # can actually be less than this if there are fewer images than the limit for a given class
         total_expected = self._cnn_train_params.image_limit * len(dataset.G4MicDataGenerator.LABELS)
         self.assertEqual(sum([len(gen._filepaths) for gen in data_split.values()]), total_expected)
+    
+    def test_create_dataset_with_channel_dummies(self):
+        data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
+        self.assertIsNotNone(data_split)
+        batch_images, batch_labels = data_split['train'][0]
+        expected_channels = 3
+        self.assertEqual(batch_images[0].shape[-1], expected_channels)
     
     def test_train_eval_cnn(self):
         model = self.create_cnn()
@@ -72,6 +110,16 @@ class ModelsTestCase(unittest.TestCase):
                             verbose = self._cnn_train_params.verbose,
                             )
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._cnn_train_params.verbose else 0)
+
+    def test_train_eval_vgg16_mpncov(self):
+        model = self.create_vgg16_mpncov()
+        data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
+        history = model.fit(data_split['train'],
+                            validation_data = data_split['validation'],
+                            epochs = self._vgg16_mpncov_train_params.epochs,
+                            verbose = self._vgg16_mpncov_train_params.verbose,
+                            )
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
 
 if __name__ == '__main__':
     unittest.main()
