@@ -4,6 +4,8 @@ import tensorflow as tf
 from tensorflow.keras import layers, metrics
 import tensorflow_addons as tfa
 
+import MPNCOV
+
 def get_model_v1(params):
     model = CNN(params)
     model.build(input_shape=(params.batch_size, params.image_size, params.image_size, 1))
@@ -19,9 +21,25 @@ def get_model_v1(params):
                   )
     return model
 
+def get_model_vgg16_mpncov_v1(params):
+    model = VGG16_MPNCOV(params)
+    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, 1))
+    model.compile(optimizer=params.optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=[
+                      'accuracy',
+                      metrics.Precision(),
+                      metrics.Recall(),
+                      tfa.metrics.F1Score(num_classes=2),
+                  ],
+                  run_eagerly=params.debug,
+                  )
+    return model
+
 MODEL_VERSION = {
     '': get_model_v1,
-    'v1': get_model_v1,
+    'cnn_v1': get_model_v1,
+    'vgg16_mpncov_v1': get_model_vgg16_mpncov_v1,
 }
 
 class CNN(tf.keras.Model):
@@ -49,4 +67,18 @@ class CNN(tf.keras.Model):
         h = self._conv3(h)
         h = self._flatten(h)
         h = self._fc1(h)
+        return self._classifier(h)
+
+class VGG16_MPNCOV(tf.keras.Model):
+    '''a deep convolutional network that combines VGG-16 and MPNCOV
+    '''
+    def __init__(self, params):
+        super(VGG16_MPNCOV, self).__init__()
+        self._vgg16 = tf.keras.applications.VGG16(include_top=False, input_shape=(params.image_size, params.image_size, 1))
+        self._mpncov = MPNCOV.MPNCOV(params)
+        self._classifier = layers.Dense(2, activation='softmax')
+
+    def call(self, inputs):
+        h = self._vgg16(inputs)
+        h = self._mpncov(h)
         return self._classifier(h)
