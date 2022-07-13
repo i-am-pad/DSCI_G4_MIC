@@ -77,20 +77,26 @@ class VGG16_MPNCOV(tf.keras.Model):
     '''
     def __init__(self, params):
         super(VGG16_MPNCOV, self).__init__()
-        self._vgg16 = tf.keras.applications.VGG16(include_top=False,
-                                                  weights='imagenet' if params.use_imagenet_weights else None,
-                                                  input_shape=(params.image_size,
-                                                               params.image_size,
-                                                               # vgg16 requires 3 channels
-                                                               3))
+        self._features = tf.keras.applications.VGG16(include_top=False,
+                                                     weights='imagenet' if params.use_imagenet_weights else None,
+                                                     input_shape=(params.image_size,
+                                                                  params.image_size,
+                                                                  # vgg16 requires 3 channels
+                                                                  3))
         self._mpncov = MPNCOV.MPNCOV(params)
-        self._flatten = layers.Flatten()
-        self._classifier = layers.Dense(2, activation='softmax')
+        self._classifier = tf.keras.Sequential(
+            layers = [
+                layers.Flatten(),
+                layers.Dense(512, activation='relu'),
+                layers.Dense(512, activation='relu'),
+                layers.Dense(2, activation='softmax'),
+            ],
+            name='classifier',
+        )
 
     def call(self, inputs):
-        h = self._vgg16(inputs)
+        h = self._features(inputs)
         # TODO: why is this producing NaNs?
         h = self._mpncov(h)
-        h = self._flatten(h)
         h = self._classifier(h)
         return h
