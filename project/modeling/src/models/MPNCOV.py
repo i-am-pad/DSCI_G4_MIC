@@ -12,7 +12,6 @@ All rights reserved.
 this was found in the author of the MPN-COV's github repos here:
     https://github.com/jiangtaoxie/Tensorflow-Fast-MPNCOV/blob/master/src/representation/MPNCOV.py
 '''
-from __future__ import absolute_import, division, print_function, unicode_literals
 import tensorflow as tf
 import tensorflow.keras.layers as layers
 
