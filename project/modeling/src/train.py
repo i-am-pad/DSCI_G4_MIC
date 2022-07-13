@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
 from tensorflow.keras import metrics
+from tensorflow.python import debug as tf_debug
 import tensorflow_addons as tfa
 
 import dataset
@@ -99,6 +100,9 @@ def init():
     if params.debug:
         tf.debugging.disable_traceback_filtering()
         tf.debugging.set_log_device_placement(True)
+        
+        sess = tf_debug.LocalCLIDebugWrapperSession(tf.Session())
+        sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
     
     return params
 

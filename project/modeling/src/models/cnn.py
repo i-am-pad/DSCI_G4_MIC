@@ -69,7 +69,8 @@ class CNN(tf.keras.Model):
         h = self._conv3(h)
         h = self._flatten(h)
         h = self._fc1(h)
-        return self._classifier(h)
+        h = self._classifier(h)
+        return 
 
 class VGG16_MPNCOV(tf.keras.Model):
     '''a deep convolutional network that combines VGG-16 and MPNCOV
@@ -83,9 +84,13 @@ class VGG16_MPNCOV(tf.keras.Model):
                                                                # vgg16 requires 3 channels
                                                                3))
         self._mpncov = MPNCOV.MPNCOV(params)
+        self._flatten = layers.Flatten()
         self._classifier = layers.Dense(2, activation='softmax')
 
     def call(self, inputs):
         h = self._vgg16(inputs)
+        # TODO: why is this producing NaNs?
         h = self._mpncov(h)
-        return self._classifier(h)
+        h = self._flatten(h)
+        h = self._classifier(h)
+        return h

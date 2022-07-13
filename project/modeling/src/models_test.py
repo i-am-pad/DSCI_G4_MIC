@@ -111,16 +111,15 @@ class ModelsTestCase(unittest.TestCase):
                             )
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._cnn_train_params.verbose else 0)
 
-    # TODO: get this working
-    #def test_train_eval_vgg16_mpncov(self):
-    #    model = self.create_vgg16_mpncov()
-    #    data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
-    #    history = model.fit(data_split['train'],
-    #                        validation_data = data_split['validation'],
-    #                        epochs = self._vgg16_mpncov_train_params.epochs,
-    #                        verbose = self._vgg16_mpncov_train_params.verbose,
-    #                        )
-    #    test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
+    def test_train_eval_vgg16_mpncov(self):
+        model = self.create_vgg16_mpncov()
+        data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
+        history = model.fit(data_split['train'],
+                            validation_data = data_split['validation'],
+                            epochs = self._vgg16_mpncov_train_params.epochs,
+                            verbose = self._vgg16_mpncov_train_params.verbose,
+                            )
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
 
 if __name__ == '__main__':
     unittest.main()
