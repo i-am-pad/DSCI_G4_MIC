@@ -75,7 +75,8 @@ def get_args():
     ap.add_argument('--class-weight', type=int, default=2, help='imbalance factor applied to benign class, which there are 2x fewer of')
     
     # cnn
-    # ...
+    ap.add_argument('--create-channel-dummies', type=bool, default=False, help='create dummy channels for each image')
+    ap.add_argument('--use-imagenet-weights', type=bool, default=False, help='use imagenet weights for VGG16 backbone')
     
     #######################
     # HELP

@@ -29,7 +29,7 @@ class MPNCOV(tf.keras.Model):
                                   will be reduced to 256 or others.
         """
 
-    def __init__(self, iterNum=5, input_dim=2048, dimension_reduction=None, dropout_p=None):
+    def __init__(self, iterNum=5, input_dim=512, dimension_reduction=None, dropout_p=None):
         super(MPNCOV, self).__init__()
         self.iterNum = iterNum
         self.dr = dimension_reduction
