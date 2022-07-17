@@ -29,3 +29,15 @@ def write_file(data: np.array, path: str, ext: str = '.npy') -> None:
     '''
     pre, _ = os.path.splitext(path)
     np.save(file_io.FileIO(pre + ext, 'w'), data)
+
+def summary_plus(layer, i=0):
+    '''shows summary of base model's nested layers
+    
+    https://stackoverflow.com/questions/58748048/how-to-print-all-activation-shapes-more-detailed-than-summary-for-tensorflow/58752908#58752908
+    '''
+    if hasattr(layer, 'layers'):
+        if i != 0: 
+            layer.summary()
+        for l in layer.layers:
+            i += 1
+            summary_plus(l, i=i)

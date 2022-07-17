@@ -5,8 +5,8 @@ class TrainParameters:
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size,
                  trial, epochs, batch_size, class_weight,
-                 create_channel_dummies, use_imagenet_weights,
-                 model, model_version, optimizer,
+                 create_channel_dummies, use_imagenet_weights, dimension_reduction,
+                 model, model_version, optimizer, learning_rate, weight_decay,
                  describe, verbose, debug,
                  **kwargs):
         ###############################
@@ -22,23 +22,23 @@ class TrainParameters:
         # MODEL
         self.model = model
         self.model_version = model_version
-        self.optimizer = optimizer
         
         # training
+        self.optimizer = optimizer
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
         self.trial = trial
         self.epochs = epochs
         self.batch_size = batch_size
         self.class_weight = class_weight
-        self.train_size = 0.7
-        self.validation_size = 0.2
+        self.train_size = 0.8
+        self.validation_size = 0.1
         #self.test_size = 1. - self.train_size - self.validation_size
-        
-        self.learning_rate = 0.001
-        self.weight_decay = 0.01
         
         # cnn
         self.create_channel_dummies = create_channel_dummies
         self.use_imagenet_weights = use_imagenet_weights
+        self.dimension_reduction = dimension_reduction
         
         # ae
         # ...

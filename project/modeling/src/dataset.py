@@ -40,6 +40,17 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             self._filepaths = self._filepaths[train_size : train_size + validation_size]
         elif split == 'test':
             self._filepaths = self._filepaths[train_size + validation_size :]
+        
+        # align to batch size
+        num_files = len(self._filepaths)
+        excess_files = num_files % self._params.batch_size
+        self._filepaths = self._filepaths[:num_files - excess_files]
+        
+        if len(self._filepaths) == 0:
+            raise ValueError(f'No files found for split {split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
+        
+        if self._params.verbose:
+            logging.info(f'dataset {split}: {len(self._filepaths)} files')
   
     def __len__(self):
         return len(self._filepaths) // self._params.batch_size

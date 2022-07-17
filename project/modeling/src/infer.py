@@ -62,8 +62,7 @@ def main():
     model = model.load_model(params)
     
     if params.verbose or params.describe:
-        # just uses print, and logging.info produces some ugly stuff if used with print_fn arg
-        model.summary()
+        utilities.summary_plus(model)
         if params.describe:
             return
     

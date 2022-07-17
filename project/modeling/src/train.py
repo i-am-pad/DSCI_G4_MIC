@@ -6,27 +6,24 @@ import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
 from tensorflow.keras import metrics
-from tensorflow.python import debug as tf_debug
 import tensorflow_addons as tfa
 
 import dataset
-from models import model
+import models.model
 import parameters
 import utilities
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
-                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b')
+                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        
-                        # TODO: this doesn't work! how does this argument actually work?
-                        # class weight for benign, which there are 2x fewer of
-                        #class_weight = {0: params.class_weight},
+                        class_weight = {0: params.class_weight, 1: 1.},
+                        shuffle = True,
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this
@@ -38,10 +35,20 @@ def train(params, model, data_split):
                                 monitor='val_accuracy',
                                 mode='max',
                                 save_best_only=True,
-                                h5py_format=True,
                             ),
+                            
                             # https://www.tensorflow.org/tensorboard/graphs
-                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, )
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
+                            
+                            tf.keras.callbacks.EarlyStopping(
+                                monitor="loss",
+                                min_delta=0.001,
+                                patience=1,
+                                verbose=1 if params.verbose else 0,
+                                mode="auto",
+                                baseline=None,
+                                restore_best_weights=False,
+                            ),
                         ],
                         
                         verbose = params.verbose,
@@ -66,18 +73,21 @@ def get_args():
     # MODEL
     
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
-    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_mpncov_v1'], default='', required=False)
-    ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1'], default='', required=False)
     
     # training
+    ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
+    ap.add_argument('--learning-rate', type=float, default=0.001, help='learning rate for optimizer')
+    ap.add_argument('--weight-decay', type=float, default=0.0, help='weight decay for optimizer')
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
-    ap.add_argument('--class-weight', type=int, default=2, help='imbalance factor applied to benign class, which there are 2x fewer of')
+    ap.add_argument('--class-weight', type=float, default=2., help='imbalance factor applied to benign class')
     
     # cnn
-    ap.add_argument('--create-channel-dummies', type=bool, default=False, help='create dummy channels for each image')
-    ap.add_argument('--use-imagenet-weights', type=bool, default=False, help='use imagenet weights for VGG16 backbone')
+    ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
+    ap.add_argument('--use-imagenet-weights', type=bool, action=argparse.BooleanOptionalAction, help='use imagenet weights for VGG16 backbone')
+    ap.add_argument('--dimension-reduction', type=int, default=None, help='dimension reduction for MPNCONV')
     
     #######################
     # HELP
@@ -100,19 +110,16 @@ def init():
     if params.debug:
         tf.debugging.disable_traceback_filtering()
         tf.debugging.set_log_device_placement(True)
-        
-        sess = tf_debug.LocalCLIDebugWrapperSession(tf.Session())
-        sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
     
     return params
 
 def main():
     params = init()
     
-    model = model.get_model(params)
+    model = models.model.get_model(params)
     
     if params.verbose or params.describe:
-        model.summary()
+        utilities.summary_plus(model)
         if params.describe:
             return
     
