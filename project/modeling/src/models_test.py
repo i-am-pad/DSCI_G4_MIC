@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from collections import namedtuple
+import logging
 import os
 # 0 = debug, 1 = info, 2 = warning, 3 = error
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -12,7 +13,7 @@ import models.model
 import models.cnn
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights model model_version optimizer learning_rate describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -29,32 +30,57 @@ class ModelsTestCase(unittest.TestCase):
     def setUp(self):
         tf.random.set_seed(42)
         self._cnn_train_params = ModelsTestCase.create_cnn_train_params()
+        self._vgg16_train_params = ModelsTestCase.create_vgg16_train_params()
         self._vgg16_mpncov_train_params = ModelsTestCase.create_vgg16_mpncov_train_params()
     
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
                         save_dir='./data',
-                        image_limit=200,
+                        image_limit=160,
                         image_size=32,
                         trial='trial',
                         epochs=1,
                         batch_size=32,
                         create_channel_dummies=False,
                         use_imagenet_weights=False,
+                        dimension_reduction=None,
                         class_weight=2,
                         model='cnn',
                         model_version='cnn_v1',
                         optimizer='adam',
                         learning_rate=0.001,
+                        weight_decay=0.0,
                         describe=False,
                         verbose=True,
                         debug=False)
         return parameters.TrainParameters(**args._asdict())
     
+    def create_vgg16_train_params():
+        args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
+                        save_dir='./data',
+                        image_limit=160,
+                        image_size=32,
+                        trial='trial',
+                        epochs=1,
+                        batch_size=32,
+                        class_weight=2,
+                        create_channel_dummies=True,
+                        use_imagenet_weights=None,
+                        dimension_reduction=None,
+                        model='cnn',
+                        model_version='vgg16_v1',
+                        optimizer='adam',
+                        learning_rate=0.001,
+                        weight_decay=0.0,
+                        describe=False,
+                        verbose=True,
+                        debug=False)
+        return parameters.TrainParameters(**args._asdict())        
+    
     def create_vgg16_mpncov_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
                         save_dir='./data',
-                        image_limit=200,
+                        image_limit=160,
                         image_size=32,
                         trial='trial',
                         epochs=1,
@@ -62,10 +88,12 @@ class ModelsTestCase(unittest.TestCase):
                         class_weight=2,
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
+                        dimension_reduction=64,
                         model='cnn',
                         model_version='vgg16_mpncov_v1',
                         optimizer='adam',
                         learning_rate=0.001,
+                        weight_decay=0.0,
                         describe=False,
                         verbose=True,
                         debug=False)
@@ -73,6 +101,10 @@ class ModelsTestCase(unittest.TestCase):
     
     def create_cnn(self):
         model = models.model.get_model(self._cnn_train_params)
+        return model
+    
+    def create_vgg16(self):
+        model = models.model.get_model(self._vgg16_train_params)
         return model
     
     def create_vgg16_mpncov(self):
@@ -83,6 +115,11 @@ class ModelsTestCase(unittest.TestCase):
         model = self.create_cnn()
         self.assertIsNotNone(model)
         self.assertEqual(type(model), models.cnn.CNN)
+    
+    def test_create_vgg16(self):
+        model = self.create_vgg16()
+        self.assertIsNotNone(model)
+        self.assertEqual(type(model), models.cnn.VGG16)
     
     def test_create_vgg16_mpncov(self):
         model = self.create_vgg16_mpncov()
@@ -113,6 +150,16 @@ class ModelsTestCase(unittest.TestCase):
                             )
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._cnn_train_params.verbose else 0)
 
+    def test_train_eval_vgg16(self):
+        model = self.create_vgg16()
+        data_split = dataset.load_generators(self._vgg16_train_params)
+        history = model.fit(data_split['train'],
+                    validation_data = data_split['validation'],
+                    epochs = self._vgg16_mpncov_train_params.epochs,
+                    verbose = self._vgg16_mpncov_train_params.verbose,
+                    )
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
+
     def test_train_eval_vgg16_mpncov(self):
         model = self.create_vgg16_mpncov()
         data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
@@ -124,4 +171,9 @@ class ModelsTestCase(unittest.TestCase):
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        )
+    
     unittest.main()

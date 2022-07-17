@@ -30,18 +30,15 @@ class MPNCOV(tf.keras.Model):
         """
 
     # TODO: convert all of these args to params
-    def __init__(self, params, iterNum=5, input_dim=512, dimension_reduction=None, dropout_p=None):
+    def __init__(self, params, iterNum=5, input_dim=512, dropout_p=None):
         super(MPNCOV, self).__init__()
         self._params = params
         self.iterNum = iterNum
-        self.dr = dimension_reduction
+        self.dr = params.dimension_reduction
         self.dropout_p = dropout_p
 
         if self.dr is not None:
-            if tf.keras.backend.image_data_format() == 'channels_last':
-                axis = 3
-            else:
-                axis = 1
+            axis = -1
             self.conv_dr_block = tf.keras.Sequential(
                 layers=[layers.Conv2D(self.dr, kernel_size=1, strides=1, use_bias=False, padding='same',
                                       kernel_initializer=tf.keras.initializers.VarianceScaling()),
@@ -67,10 +64,9 @@ class MPNCOV(tf.keras.Model):
             x = self.conv_dr_block(x, training=training)
 
         x = self._covpool(x)
-        # TODO: figure out which one of these is producing NaNs and why
+        # TODO: figure out which one of these is producing NaNs/Infs and why
         #x = self._sqrtm(x)
         #x = self._triuvec(x)
-
 
         if self.dropout_p is not None:
             x = self.dropout(x, training=training)

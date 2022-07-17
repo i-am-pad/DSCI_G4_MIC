@@ -15,7 +15,7 @@ import utilities
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
-                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd')
+                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
     
@@ -23,6 +23,7 @@ def train(params, model, data_split):
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
                         class_weight = {0: params.class_weight, 1: 1.},
+                        shuffle = True,
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this
@@ -34,7 +35,6 @@ def train(params, model, data_split):
                                 monitor='val_accuracy',
                                 mode='max',
                                 save_best_only=True,
-                                h5py_format=True,
                             ),
                             # https://www.tensorflow.org/tensorboard/graphs
                             tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, )
@@ -62,19 +62,21 @@ def get_args():
     # MODEL
     
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
-    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_mpncov_v1'], default='', required=False)
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1'], default='', required=False)
     
     # training
     ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
     ap.add_argument('--learning-rate', type=float, default=0.001, help='learning rate for optimizer')
+    ap.add_argument('--weight-decay', type=float, default=0.0, help='weight decay for optimizer')
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
-    ap.add_argument('--class-weight', type=float, default=2., help='imbalance factor applied to benign class, which there are 2x fewer of')
+    ap.add_argument('--class-weight', type=float, default=2., help='imbalance factor applied to benign class')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
     ap.add_argument('--use-imagenet-weights', type=bool, action=argparse.BooleanOptionalAction, help='use imagenet weights for VGG16 backbone')
+    ap.add_argument('--dimension-reduction', type=int, default=None, help='dimension reduction for MPNCONV')
     
     #######################
     # HELP
@@ -106,7 +108,7 @@ def main():
     model = models.model.get_model(params)
     
     if params.verbose or params.describe:
-        model.summary()
+        utilities.summary_plus(model)
         if params.describe:
             return
     
