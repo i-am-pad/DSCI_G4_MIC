@@ -36,8 +36,19 @@ def train(params, model, data_split):
                                 mode='max',
                                 save_best_only=True,
                             ),
+                            
                             # https://www.tensorflow.org/tensorboard/graphs
-                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, )
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
+                            
+                            tf.keras.callbacks.EarlyStopping(
+                                monitor="loss",
+                                min_delta=0.001,
+                                patience=1,
+                                verbose=1 if params.verbose else 0,
+                                mode="auto",
+                                baseline=None,
+                                restore_best_weights=False,
+                            ),
                         ],
                         
                         verbose = params.verbose,
