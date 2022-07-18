@@ -8,14 +8,22 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 import dataset
-from models import model
+import models.model
 import parameters
 import utilities
 import visualize
 
-def infer(params, model, data_split):
-    if params.plot_layer_activations:
-        visualize.plot_layer_activations(params, model, data_split)
+MODES = {
+    'show-model-summary': visualize.show_model_summary,
+    'plot-model': visualize.plot_model,
+    'plot-layer-activations': visualize.plot_layer_activations,
+}
+
+def infer(params):
+    if not (mode := MODES.get(params.mode)):
+        raise ValueError(f'unknown mode: {params.mode}')
+    
+    mode(params)
 
 def get_args():
     import argparse
@@ -23,14 +31,21 @@ def get_args():
     
     #######################
     # DATA
-    ap.add_argument('--image-files', type=str, required=True, nargs='+', action='append', help='image file to evaluate with model')
-    ap.add_argument('--image-size', type=int, required=True, help='single H and W dimension all files are subject to')
-    ap.add_argument('--model-dir', type=str, required=True, help='directory of checkpointed model to load')
+    ap.add_argument('--image-files', type=str, required=False, nargs='+', action='append', help='image file to evaluate with model')
+    ap.add_argument('--image-size', type=int, required=False, help='single H and W dimension all files are subject to')
+    ap.add_argument('--image-limit', type=int, required=False, help='limit number of images to use')
+    ap.add_argument('--model-dir', type=str, required=False, help='directory of checkpointed model to load')
+    ap.add_argument('--data-dir', type=str, default='./data', help='data directory for reference data')
     ap.add_argument('--save-dir', type=str, default='./data', help='directory for saving data to')
     
     #######################
     # MODE
-    ap.add_argument('--plot-layer-activations', type=bool, action=argparse.BooleanOptionalAction, help='saves a plot of the layer activations ')
+    ap.add_argument('--mode', type=str, choices=['show-model-summary', 'plot-model', 'plot-layer-activations'], help='mode to run')
+    
+    #######################
+    # MODEL
+    ap.add_argument('--model', type=str, choices=['cnn'], required=True)
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1'], default='', required=False)
     
     #######################
     # HELP
@@ -58,17 +73,7 @@ def init():
 
 def main():
     params = init()
-    
-    model = model.load_model(params)
-    
-    if params.verbose or params.describe:
-        utilities.summary_plus(model)
-        if params.describe:
-            return
-    
-    data = dataset.load_from_files(params)
-    
-    infer(params, model, data)
+    infer(params)
         
 if __name__ == '__main__':
     main()

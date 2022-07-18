@@ -7,12 +7,13 @@ MODEL_MODULES = {
     'cnn': cnn,
 }
 
-def get_model(params) -> tf.keras.Model:
+def get_model(params, compile=True) -> tf.keras.Model:
     '''returns an untrained model based on the model_version parameter
     
     args
         params.model: model to create
         params.model_version: version of the model to create
+        compile: enables compiling the model
     
     returns
         instance of untrained model
@@ -28,9 +29,9 @@ def get_model(params) -> tf.keras.Model:
     if not model_version:
         raise ValueError(f'unknown model version: {params.model_version}')
     
-    return model_version(params)
+    return model_version(params, compile)
 
-def load_model(params, has_f1: True) -> tf.keras.Model:
+def load_model(params, has_f1: bool=True) -> tf.keras.Model:
     '''loads a model from a tensorflow format save directory
     
     args
@@ -51,4 +52,4 @@ def load_model(params, has_f1: True) -> tf.keras.Model:
             return metric.result()
         custom_objects['f1'] = f1
     
-    return tf.keras.models.load_model(params.model_path.rstrip('/'), compile=False, custom_objects=custom_objects)
+    return tf.keras.models.load_model(params.model_dir.rstrip('/'), compile=False, custom_objects=custom_objects)
