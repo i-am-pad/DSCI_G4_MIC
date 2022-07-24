@@ -17,6 +17,7 @@ def get_model_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
+                        tf.keras.metrics.AUC(from_logits=True),
                         tfa.metrics.F1Score(num_classes=1),
                     ],
                     run_eagerly=params.debug,
@@ -34,6 +35,7 @@ def get_model_vgg16_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
+                        tf.keras.metrics.AUC(from_logits=True),
                         tfa.metrics.F1Score(num_classes=1),
                     ],
                     run_eagerly=params.debug,
@@ -51,6 +53,7 @@ def get_model_vgg16_mpncov_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
+                        tf.keras.metrics.AUC(from_logits=True),
                         tfa.metrics.F1Score(num_classes=1),
                     ],
                     run_eagerly=params.debug,
@@ -94,7 +97,9 @@ class CNN(tf.keras.Model):
         self._conv2 = layers.Conv2D(32, 3, activation='relu', padding='same')
         self._maxpool2 = layers.MaxPooling2D((2, 2), padding='same')
         self._conv3 = layers.Conv2D(32, 3, activation='relu', padding='same')
-        self._classifier = Classifier(params)
+        self._flatten = layers.Flatten()
+        self._fc1 = layers.Dense(64, activation='relu')
+        self._classifier = layers.Dense(1, activation='sigmoid')
 
     def call(self, inputs):
         h = self._rescaling(inputs)

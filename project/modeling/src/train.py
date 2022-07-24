@@ -17,13 +17,15 @@ def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
                                     f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
     tb_log_path = os.path.join(params.save_dir,
-                               f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
+                               f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        class_weight = {0: params.class_weight, 1: 1.},
-                        shuffle = True,
+                        # malicious = 16243, benign = 8361, total = 24604
+                        # 1/malicious * total / 2 = 0.7574
+                        # 1/benign    * total / 2 = 1.4714
+                        class_weight = {0: 1.4714, 1: 0.7574},
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this

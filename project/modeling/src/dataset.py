@@ -29,7 +29,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         # flattens the result
         self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
         
-        if type(params) is not parameters.TrainParameters:
+        if type(params) == parameters.TrainParameters:
             train_size = int(params.train_size * len(self._filepaths))
             validation_size = int(params.validation_size * len(self._filepaths))
             #test_size = len(self._filepaths) - train_size - validation_size
@@ -52,7 +52,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             
             if self._params.verbose:
                 logging.info(f'dataset {split}: {len(self._filepaths)} files')
-        elif type(params) is parameters.InferParameters:
+        elif type(params) == parameters.InferParameters:
             pass
         else:
             raise ValueError(f'Unknown parameters type: {type(params)}')
