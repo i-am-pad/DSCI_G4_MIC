@@ -15,15 +15,17 @@ import utilities
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
-                                    f'{params.model}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
+                                    f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
     tb_log_path = os.path.join(params.save_dir,
-                               f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}")
+                               f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        class_weight = {0: params.class_weight, 1: 1.},
-                        shuffle = True,
+                        # malicious = 16243, benign = 8361, total = 24604
+                        # 1/malicious * total / 2 = 0.7574
+                        # 1/benign    * total / 2 = 1.4714
+                        class_weight = {0: 1.4714, 1: 0.7574},
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this
@@ -32,7 +34,8 @@ def train(params, model, data_split):
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
-                                monitor='val_accuracy',
+                                #monitor='val_accuracy',
+                                monitor='accuracy',
                                 mode='max',
                                 save_best_only=True,
                             ),
@@ -43,9 +46,9 @@ def train(params, model, data_split):
                             tf.keras.callbacks.EarlyStopping(
                                 monitor="loss",
                                 min_delta=0.001,
-                                patience=1,
+                                patience=3,
                                 verbose=1 if params.verbose else 0,
-                                mode="auto",
+                                mode="max",
                                 baseline=None,
                                 restore_best_weights=False,
                             ),
@@ -54,8 +57,9 @@ def train(params, model, data_split):
                         verbose = params.verbose,
                         )
     
-    test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
-    logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+    if len(data_split['test']):
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
+        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
 
 def get_args():
     import argparse
@@ -66,12 +70,11 @@ def get_args():
     
     ap.add_argument('--data-dir', type=str, default='./data', help=r'data directory for reference data')
     ap.add_argument('--save-dir', type=str, default='./data', help=r'directory for saving data to')
-    ap.add_argument('--image-limit', type=float, default=0, help=r'proportional limit between 0 and 1 for number of images to load. default value 0 loads all images.')
+    ap.add_argument('--image-limit', type=int, default=0, help=r'limit number of images to use')
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
     
     #######################
     # MODEL
-    
     ap.add_argument('--model', type=str, choices=['cnn'], required=True)
     ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1'], default='', required=False)
     

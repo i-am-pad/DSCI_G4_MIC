@@ -29,28 +29,33 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         # flattens the result
         self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
         
-        train_size = int(params.train_size * len(self._filepaths))
-        validation_size = int(params.validation_size * len(self._filepaths))
-        #test_size = len(self._filepaths) - train_size - validation_size
-        
-        # TODO: randomize selection of filepaths
-        if split == 'train':
-            self._filepaths = self._filepaths[:train_size]
-        elif split == 'validation':
-            self._filepaths = self._filepaths[train_size : train_size + validation_size]
-        elif split == 'test':
-            self._filepaths = self._filepaths[train_size + validation_size :]
-        
-        # align to batch size
-        num_files = len(self._filepaths)
-        excess_files = num_files % self._params.batch_size
-        self._filepaths = self._filepaths[:num_files - excess_files]
-        
-        if len(self._filepaths) == 0:
-            raise ValueError(f'No files found for split {split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
-        
-        if self._params.verbose:
-            logging.info(f'dataset {split}: {len(self._filepaths)} files')
+        if type(params) == parameters.TrainParameters:
+            train_size = int(params.train_size * len(self._filepaths))
+            validation_size = int(params.validation_size * len(self._filepaths))
+            #test_size = len(self._filepaths) - train_size - validation_size
+            
+            # TODO: randomize selection of filepaths
+            if split == 'train':
+                self._filepaths = self._filepaths[:train_size]
+            elif split == 'validation':
+                self._filepaths = self._filepaths[train_size : train_size + validation_size]
+            elif split == 'test':
+                self._filepaths = self._filepaths[train_size + validation_size :]
+            
+            # align to batch size
+            num_files = len(self._filepaths)
+            excess_files = num_files % self._params.batch_size
+            self._filepaths = self._filepaths[:num_files - excess_files]
+            
+            if len(self._filepaths) == 0 and split != 'test':
+                raise ValueError(f'No files found for split {split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
+            
+            if self._params.verbose:
+                logging.info(f'dataset {split}: {len(self._filepaths)} files')
+        elif type(params) == parameters.InferParameters:
+            pass
+        else:
+            raise ValueError(f'Unknown parameters type: {type(params)}')
   
     def __len__(self):
         return len(self._filepaths) // self._params.batch_size
@@ -69,8 +74,11 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             images.append(data)
             labels.append(self.LABELS['benign'] if 'benign' in fp else self.LABELS['malicious'])
         
-        # to_categorical applies one-hot encoding to label encoding
-        return tf.convert_to_tensor(images), tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
+        return (tf.convert_to_tensor(images),
+                # to_categorical applies one-hot encoding to label encoding
+                #tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
+                tf.convert_to_tensor(labels)
+               )
 
 def load_generators(params):
     return {
