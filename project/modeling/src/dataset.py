@@ -35,8 +35,12 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         if params.image_limit:
             # applies file limit by class
             filepaths = [ fps[:params.image_limit] for fps in filepaths ]
+        
         # flattens the result
         self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
+        
+        # shuffle to ensure classes are mixed when split partitions are created
+        np.random.shuffle(self._filepaths)
         
         if type(params) == parameters.TrainParameters:
             train_size = int(params.train_size * len(self._filepaths))
@@ -65,15 +69,18 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             pass
         else:
             raise ValueError(f'Unknown parameters type: {type(params)}')
+
+        self.on_epoch_end()
   
     def __len__(self):
         return len(self._filepaths) // self._params.batch_size
    
     def __getitem__(self, index):
-        batch_filepaths = self._filepaths[index*self._params.batch_size : (index+1)*self._params.batch_size]
+        indices = self.indices[index * self._params.batch_size : (index + 1) * self._params.batch_size]
         images = []
         labels = []
-        for fp in batch_filepaths:
+        for ix in indices:
+            fp = self._filepaths[ix]
             data = utilities.read_file(fp, dtype='float32')
             channels = 1
             data = tf.convert_to_tensor(data.reshape(self._params.image_size, self._params.image_size, channels), )
@@ -88,6 +95,10 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
                 #tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
                 tf.convert_to_tensor(labels)
                )
+    
+    def on_epoch_end(self):
+        self.indices = np.arange(len(self._filepaths))
+        np.random.shuffle(self.indices)
 
 def load_generators(params):
     return {

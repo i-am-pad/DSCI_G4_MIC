@@ -36,11 +36,11 @@ class ModelsTestCase(unittest.TestCase):
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
                         save_dir='./data',
-                        image_limit=160,
+                        image_limit=30,
                         image_size=32,
                         trial='trial',
                         epochs=1,
-                        batch_size=32,
+                        batch_size=2,
                         create_channel_dummies=False,
                         use_imagenet_weights=False,
                         dimension_reduction=None,
@@ -58,11 +58,11 @@ class ModelsTestCase(unittest.TestCase):
     def create_vgg16_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
                         save_dir='./data',
-                        image_limit=160,
+                        image_limit=30,
                         image_size=32,
                         trial='trial',
                         epochs=1,
-                        batch_size=32,
+                        batch_size=2,
                         class_weight=2,
                         create_channel_dummies=True,
                         use_imagenet_weights=None,
@@ -80,11 +80,11 @@ class ModelsTestCase(unittest.TestCase):
     def create_vgg16_mpncov_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
                         save_dir='./data',
-                        image_limit=160,
+                        image_limit=30,
                         image_size=32,
                         trial='trial',
                         epochs=1,
-                        batch_size=32,
+                        batch_size=2,
                         class_weight=2,
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
@@ -147,8 +147,9 @@ class ModelsTestCase(unittest.TestCase):
                             validation_data = data_split['validation'],
                             epochs = self._cnn_train_params.epochs,
                             verbose = self._cnn_train_params.verbose,
+                            shuffle=True,
                             )
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._cnn_train_params.verbose else 0)
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._cnn_train_params.verbose else 0)
 
     def test_train_eval_vgg16(self):
         model = self.create_vgg16()
@@ -157,8 +158,9 @@ class ModelsTestCase(unittest.TestCase):
                     validation_data = data_split['validation'],
                     epochs = self._vgg16_mpncov_train_params.epochs,
                     verbose = self._vgg16_mpncov_train_params.verbose,
+                    shuffle=True,
                     )
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
 
     def test_train_eval_vgg16_mpncov(self):
         model = self.create_vgg16_mpncov()
@@ -167,8 +169,9 @@ class ModelsTestCase(unittest.TestCase):
                             validation_data = data_split['validation'],
                             epochs = self._vgg16_mpncov_train_params.epochs,
                             verbose = self._vgg16_mpncov_train_params.verbose,
+                            shuffle=True,
                             )
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

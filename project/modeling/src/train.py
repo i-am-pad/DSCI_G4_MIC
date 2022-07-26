@@ -3,6 +3,7 @@
 from datetime import datetime
 import logging
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import tensorflow as tf
 from tensorflow.keras import metrics
@@ -29,11 +30,7 @@ def train(params, model, data_split):
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
                         class_weight = class_weights,
-                        
-                        # TODO: data generator needs to implement on_epoch_end
-                        #       to use this
-                        #shuffle = True,
-                        
+                        shuffle = True,
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
@@ -42,10 +39,8 @@ def train(params, model, data_split):
                                 mode='max',
                                 save_best_only=True,
                             ),
-                            
                             # https://www.tensorflow.org/tensorboard/graphs
                             tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
-                            
                             tf.keras.callbacks.EarlyStopping(
                                 monitor="loss",
                                 min_delta=0.001,
@@ -62,6 +57,9 @@ def train(params, model, data_split):
     
     if len(data_split['test']):
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
+        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+    else:
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0)
         logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
 
 def get_args():
@@ -107,6 +105,7 @@ def init():
     params = parameters.TrainParameters(**vars(args))
     
     tf.random.set_seed(42)
+    np.random.seed(42)
     
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
