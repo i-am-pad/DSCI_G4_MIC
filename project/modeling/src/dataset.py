@@ -22,7 +22,16 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         self._params = params
         self._split = split
         
-        filepaths = [ tf.io.gfile.glob(os.path.join(params.data_dir, label, '*')) for label in self.LABELS.keys() ]
+        filepaths = []
+        for label in self.LABELS.keys():
+            dir = os.path.join(params.data_dir, label)
+            registry = os.path.join(params.data_dir, f'{label}.txt')
+            if tf.io.gfile.exists(os.path.join(registry)):
+                with open(registry, 'r') as fin:
+                    filepaths.append([os.path.join(dir, fp.strip()) for fp in fin.readlines()])
+            else:
+                filepaths.append(tf.io.gfile.glob(os.path.join(dir, '*')))
+        
         if params.image_limit:
             # applies file limit by class
             filepaths = [ fps[:params.image_limit] for fps in filepaths ]

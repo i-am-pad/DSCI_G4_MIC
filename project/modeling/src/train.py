@@ -19,13 +19,16 @@ def train(params, model, data_split):
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%F%m%d-%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
     
+    # if using the full dataset as of 2022-07-25:
+    # malicious = 204855, benign = 33773, total = 238628
+    # 1/benign    * total / 2 = 3.5328
+    # 1/malicious * total/2 = 0.5824
+    class_weights = {0: 3.5328, 1: 0.5824} if not params.image_limit else {0: 1., 1: 1.}
+    
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
-                        # malicious = 16243, benign = 8361, total = 24604
-                        # 1/malicious * total / 2 = 0.7574
-                        # 1/benign    * total / 2 = 1.4714
-                        class_weight = {0: 1.4714, 1: 0.7574},
+                        class_weight = class_weights,
                         
                         # TODO: data generator needs to implement on_epoch_end
                         #       to use this
