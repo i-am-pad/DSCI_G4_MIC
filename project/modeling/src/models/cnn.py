@@ -9,7 +9,7 @@ from . import MPNCOV
 def get_model_v1(params, compile=True):
     model = CNN(params)
     channels = 1
-    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, channels))
+    model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
@@ -27,7 +27,7 @@ def get_model_v1(params, compile=True):
 def get_model_vgg16_v1(params, compile=True):
     model = VGG16(params)
     channels = 3
-    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, channels))
+    model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
@@ -45,7 +45,7 @@ def get_model_vgg16_v1(params, compile=True):
 def get_model_vgg16_mpncov_v1(params, compile=True):
     model = VGG16_MPNCOV(params)
     channels = 3
-    model.build(input_shape=(params.batch_size, params.image_size, params.image_size, channels))
+    model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
