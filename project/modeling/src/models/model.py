@@ -1,10 +1,11 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from . import cnn
+from . import cnn, logistic_regression
 
 MODEL_MODULES = {
     'cnn': cnn,
+    'lr': logistic_regression,
 }
 
 def get_model(params, compile=True) -> tf.keras.Model:
