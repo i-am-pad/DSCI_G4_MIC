@@ -6,6 +6,7 @@ class TrainParameters:
                  data_dir, save_dir, image_limit, image_size, no_batch, use_gpu,
                  trial, epochs, batch_size, class_weight,
                  create_channel_dummies, use_imagenet_weights, dimension_reduction,
+                 svc_l2,
                  model, model_version, optimizer, learning_rate, weight_decay,
                  describe, verbose, debug,
                  **kwargs):
@@ -44,6 +45,11 @@ class TrainParameters:
         
         # ae
         # ...
+        
+        # linear regression
+        
+        # svc
+        self.svc_l2 = svc_l2
         
         ###############################
         # HELP

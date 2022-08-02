@@ -14,7 +14,7 @@ import models.logistic_regression
 import models.model
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -49,6 +49,7 @@ class ModelsTestCase(unittest.TestCase):
                         create_channel_dummies=False,
                         use_imagenet_weights=False,
                         dimension_reduction=None,
+                        svc_l2=0.01,
                         class_weight=2,
                         model='cnn',
                         model_version='cnn_v1',
@@ -74,6 +75,7 @@ class ModelsTestCase(unittest.TestCase):
                         create_channel_dummies=True,
                         use_imagenet_weights=None,
                         dimension_reduction=None,
+                        svc_l2=0.01,
                         model='cnn',
                         model_version='vgg16_v1',
                         optimizer='adam',
@@ -98,6 +100,7 @@ class ModelsTestCase(unittest.TestCase):
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
+                        svc_l2=0.01,
                         model='cnn',
                         model_version='vgg16_mpncov_v1',
                         optimizer='adam',
@@ -124,6 +127,7 @@ class ModelsTestCase(unittest.TestCase):
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
+                        svc_l2=0.01,
                         model='lr',
                         model_version='lr_v1',
                         optimizer='adam',
@@ -150,6 +154,7 @@ class ModelsTestCase(unittest.TestCase):
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
+                        svc_l2=0.01,
                         model='lr',
                         model_version='svc_v1',
                         optimizer='adam',
@@ -203,7 +208,7 @@ class ModelsTestCase(unittest.TestCase):
     def test_create_svc(self):
         model = self.create_svc()
         self.assertIsNotNone(model)
-        self.assertEqual(type(model), models.logistic_regression.LogisticRegression)
+        self.assertEqual(type(model), models.logistic_regression.SVC)
     
     def test_create_dataset(self):
         data_split = dataset.load_generators(self._cnn_train_params)
@@ -263,16 +268,16 @@ class ModelsTestCase(unittest.TestCase):
                             )
         _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._lr_params.verbose else 0)
 
-    def test_train_eval_lr(self):
-        model = self.create_lr()
-        data_split = dataset.load_generators(self._lr_params)
+    def test_train_eval_svc(self):
+        model = self.create_svc()
+        data_split = dataset.load_generators(self._svc_params)
         history = model.fit(data_split['train'],
                             validation_data = data_split['validation'],
-                            epochs = self._lr_params.epochs,
-                            verbose = self._lr_params.verbose,
+                            epochs = self._svc_params.epochs,
+                            verbose = self._svc_params.verbose,
                             shuffle=True,
                             )
-        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._lr_params.verbose else 0)
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._svc_params.verbose else 0)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

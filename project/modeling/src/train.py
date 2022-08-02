@@ -95,6 +95,9 @@ def get_args():
     ap.add_argument('--use-imagenet-weights', type=bool, action=argparse.BooleanOptionalAction, help='use imagenet weights for VGG16 backbone')
     ap.add_argument('--dimension-reduction', type=int, default=None, help='dimension reduction for MPNCONV')
     
+    # svc
+    ap.add_argument('--svc-l2', type=float, default=0.01, help='l2 regularization for svc')
+    
     #######################
     # HELP
     ap.add_argument('--describe', action=argparse.BooleanOptionalAction, help='prints model architecture and exits')
