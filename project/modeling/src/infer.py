@@ -37,6 +37,8 @@ def get_args():
     ap.add_argument('--model-dir', type=str, required=False, help='directory of checkpointed model to load')
     ap.add_argument('--data-dir', type=str, default='./data', help='data directory for reference data')
     ap.add_argument('--save-dir', type=str, default='./data', help='directory for saving data to')
+    ap.add_argument('--no-batch', action='store_true', help=r'use single batch for training')
+    ap.add_argument('--use-gpu', action=argparse.BooleanOptionalAction, default=True, help=r'use GPU')
     
     #######################
     # MODE
@@ -57,8 +59,15 @@ def get_args():
 def init():
     args = get_args()
     params = parameters.InferParameters(**vars(args))
-    
+            
+    if not params.use_gpu:
+        tf.config.set_visible_devices([], 'GPU')
+        visible_devices = tf.config.get_visible_devices()
+        for device in visible_devices:
+            assert device.device_type != 'GPU'
+
     tf.random.set_seed(42)
+    np.random.seed(42)
     
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',

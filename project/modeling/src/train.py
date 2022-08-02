@@ -3,6 +3,7 @@
 from datetime import datetime
 import logging
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import tensorflow as tf
 from tensorflow.keras import metrics
@@ -29,11 +30,7 @@ def train(params, model, data_split):
                         validation_data = data_split['validation'],
                         epochs = params.epochs,
                         class_weight = class_weights,
-                        
-                        # TODO: data generator needs to implement on_epoch_end
-                        #       to use this
-                        #shuffle = True,
-                        
+                        shuffle = True,
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
@@ -42,10 +39,8 @@ def train(params, model, data_split):
                                 mode='max',
                                 save_best_only=True,
                             ),
-                            
                             # https://www.tensorflow.org/tensorboard/graphs
                             tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
-                            
                             tf.keras.callbacks.EarlyStopping(
                                 monitor="loss",
                                 min_delta=0.001,
@@ -63,6 +58,9 @@ def train(params, model, data_split):
     if len(data_split['test']):
         test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
         logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+    else:
+        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0)
+        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
 
 def get_args():
     import argparse
@@ -75,6 +73,8 @@ def get_args():
     ap.add_argument('--save-dir', type=str, default='./data', help=r'directory for saving data to')
     ap.add_argument('--image-limit', type=int, default=0, help=r'limit number of images to use')
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
+    ap.add_argument('--no-batch', action='store_true', help=r'use single batch for training')
+    ap.add_argument('--use-gpu', action=argparse.BooleanOptionalAction, default=True, help=r'use GPU')
     
     #######################
     # MODEL
@@ -107,7 +107,14 @@ def init():
     params = parameters.TrainParameters(**vars(args))
     
     tf.random.set_seed(42)
-    
+    np.random.seed(42)
+        
+    if not params.use_gpu:
+        tf.config.set_visible_devices([], 'GPU')
+        visible_devices = tf.config.get_visible_devices()
+        for device in visible_devices:
+            assert device.device_type != 'GPU'
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
@@ -116,7 +123,7 @@ def init():
     if params.debug:
         tf.debugging.disable_traceback_filtering()
         tf.debugging.set_log_device_placement(True)
-    
+
     return params
 
 def main():
