@@ -79,7 +79,7 @@ def get_args():
     #######################
     # MODEL
     ap.add_argument('--model', type=str, choices=['cnn', 'lr'], required=True)
-    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'lr_v1'], default='', required=False)
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'lr_v1', 'svc_v1'], default='', required=False)
     
     # training
     ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
