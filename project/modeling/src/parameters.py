@@ -3,7 +3,7 @@ import tensorflow as tf
 class TrainParameters:
     '''configuration holder'''
     def __init__(self,
-                 data_dir, save_dir, image_limit, image_size,
+                 data_dir, save_dir, image_limit, image_size, no_batch, use_gpu,
                  trial, epochs, batch_size, class_weight,
                  create_channel_dummies, use_imagenet_weights, dimension_reduction,
                  model, model_version, optimizer, learning_rate, weight_decay,
@@ -16,6 +16,8 @@ class TrainParameters:
         self.save_dir = save_dir
         self.image_limit = image_limit
         self.image_size = image_size
+        self.use_gpu = use_gpu
+        self.no_batch = no_batch
         self.normalize = True
         
         ###############################
@@ -52,7 +54,7 @@ class TrainParameters:
 class InferParameters:
     '''configuration holder'''
     def __init__(self,
-                 image_files, image_size, image_limit, model_dir, data_dir, save_dir,
+                 image_files, image_size, image_limit, model_dir, data_dir, save_dir, no_batch, use_gpu,
                  mode,
                  model, model_version,
                  describe, verbose, debug,
@@ -64,6 +66,8 @@ class InferParameters:
         self.data_dir = data_dir
         self.model_dir = model_dir
         self.save_dir = save_dir
+        self.no_batch = no_batch
+        self.use_gpu = use_gpu
         self.normalize = True
              
         #######################

@@ -13,7 +13,7 @@ import models.model
 import models.cnn
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -38,6 +38,8 @@ class ModelsTestCase(unittest.TestCase):
                         save_dir='./data',
                         image_limit=30,
                         image_size=32,
+                        no_batch=False,
+                        use_gpu=True,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -60,6 +62,8 @@ class ModelsTestCase(unittest.TestCase):
                         save_dir='./data',
                         image_limit=30,
                         image_size=32,
+                        no_batch=False,
+                        use_gpu=True,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -82,6 +86,8 @@ class ModelsTestCase(unittest.TestCase):
                         save_dir='./data',
                         image_limit=30,
                         image_size=32,
+                        no_batch=False,
+                        use_gpu=True,
                         trial='trial',
                         epochs=1,
                         batch_size=2,

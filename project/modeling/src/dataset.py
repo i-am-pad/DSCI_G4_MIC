@@ -55,10 +55,10 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             elif split == 'test':
                 self._filepaths = self._filepaths[train_size + validation_size :]
             
-            # align to batch size
-            num_files = len(self._filepaths)
-            excess_files = num_files % self._params.batch_size
-            self._filepaths = self._filepaths[:num_files - excess_files]
+            if not self._params.no_batch:
+                num_files = len(self._filepaths)
+                excess_files = num_files % self._params.batch_size
+                self._filepaths = self._filepaths[:num_files - excess_files]
             
             if len(self._filepaths) == 0 and split != 'test':
                 raise ValueError(f'No files found for split {split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
@@ -73,10 +73,10 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         self.on_epoch_end()
   
     def __len__(self):
-        return len(self._filepaths) // self._params.batch_size
+        return len(self._filepaths) if self._params.no_batch else len(self._filepaths) // self._params.batch_size
    
     def __getitem__(self, index):
-        indices = self.indices[index * self._params.batch_size : (index + 1) * self._params.batch_size]
+        indices = self.indices if self._params.no_batch else self.indices[index * self._params.batch_size : (index + 1) * self._params.batch_size]
         images = []
         labels = []
         for ix in indices:
@@ -103,6 +103,13 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
 def load_generators(params):
     return {
         split: G4MicDataGenerator(params, split)
+        for split in ['train', 'validation', 'test']
+    }
+
+def load_data(params):
+    generators = load_generators(params)
+    return {
+        split: generators[split].__getitem__(0)
         for split in ['train', 'validation', 'test']
     }
 

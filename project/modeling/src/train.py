@@ -73,6 +73,8 @@ def get_args():
     ap.add_argument('--save-dir', type=str, default='./data', help=r'directory for saving data to')
     ap.add_argument('--image-limit', type=int, default=0, help=r'limit number of images to use')
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
+    ap.add_argument('--no-batch', action='store_true', help=r'use single batch for training')
+    ap.add_argument('--use-gpu', action=argparse.BooleanOptionalAction, default=True, help=r'use GPU')
     
     #######################
     # MODEL
@@ -106,7 +108,13 @@ def init():
     
     tf.random.set_seed(42)
     np.random.seed(42)
-    
+        
+    if not params.use_gpu:
+        tf.config.set_visible_devices([], 'GPU')
+        visible_devices = tf.config.get_visible_devices()
+        for device in visible_devices:
+            assert device.device_type != 'GPU'
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d [%(levelname)s] %(module)s %(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
@@ -115,7 +123,7 @@ def init():
     if params.debug:
         tf.debugging.disable_traceback_filtering()
         tf.debugging.set_log_device_placement(True)
-    
+
     return params
 
 def main():
