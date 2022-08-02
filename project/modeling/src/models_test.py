@@ -34,6 +34,7 @@ class ModelsTestCase(unittest.TestCase):
         self._vgg16_train_params = ModelsTestCase.create_vgg16_train_params()
         self._vgg16_mpncov_train_params = ModelsTestCase.create_vgg16_mpncov_train_params()
         self._lr_params = ModelsTestCase.create_logistic_regression_params()
+        self._svc_params = ModelsTestCase.create_svc_params()
     
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
@@ -133,6 +134,32 @@ class ModelsTestCase(unittest.TestCase):
                         debug=False)
         return parameters.TrainParameters(**args._asdict())
     
+    def create_svc_params():
+        args = MockArgs(#data_dir='gs://dsci591_g4mic/images_32x32',
+                        #image_size=32,
+                        data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
+                        image_size=256,
+                        save_dir='./data',
+                        image_limit=30,
+                        no_batch=True,
+                        use_gpu=False,
+                        trial='trial',
+                        epochs=1,
+                        batch_size=2,
+                        class_weight=2,
+                        create_channel_dummies=False,
+                        use_imagenet_weights=True,
+                        dimension_reduction=64,
+                        model='lr',
+                        model_version='svc_v1',
+                        optimizer='adam',
+                        learning_rate=0.001,
+                        weight_decay=0.0,
+                        describe=False,
+                        verbose=True,
+                        debug=False)
+        return parameters.TrainParameters(**args._asdict())
+    
     def create_cnn(self):
         model = models.model.get_model(self._cnn_train_params)
         return model
@@ -147,6 +174,10 @@ class ModelsTestCase(unittest.TestCase):
     
     def create_lr(self):
         model = models.model.get_model(self._lr_params)
+        return model
+        
+    def create_svc(self):
+        model = models.model.get_model(self._svc_params)
         return model
     
     def test_create_cnn(self):
@@ -166,6 +197,11 @@ class ModelsTestCase(unittest.TestCase):
     
     def test_create_lr(self):
         model = self.create_lr()
+        self.assertIsNotNone(model)
+        self.assertEqual(type(model), models.logistic_regression.LogisticRegression)
+        
+    def test_create_svc(self):
+        model = self.create_svc()
         self.assertIsNotNone(model)
         self.assertEqual(type(model), models.logistic_regression.LogisticRegression)
     
@@ -216,6 +252,17 @@ class ModelsTestCase(unittest.TestCase):
                             )
         _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
         
+    def test_train_eval_lr(self):
+        model = self.create_lr()
+        data_split = dataset.load_generators(self._lr_params)
+        history = model.fit(data_split['train'],
+                            validation_data = data_split['validation'],
+                            epochs = self._lr_params.epochs,
+                            verbose = self._lr_params.verbose,
+                            shuffle=True,
+                            )
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._lr_params.verbose else 0)
+
     def test_train_eval_lr(self):
         model = self.create_lr()
         data_split = dataset.load_generators(self._lr_params)
