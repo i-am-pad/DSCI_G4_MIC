@@ -1,5 +1,29 @@
 import tensorflow as tf
 
+class DatasetParameters:
+    def __init__(self,
+                 data_dir, image_size, image_limit=None, batch_size=32, no_batch=False, use_gpu=False, create_channel_dummies=False,
+                 train_size=0.8, validation_size=0.2, test_size=0.0,
+                 verbose=False):
+        self.data_dir = data_dir
+        # not inferred from directory name, since not all datasets have this info
+        # in their directory names
+        self.image_size = image_size
+        # loads image_limit of both benign and malicious images
+        self.image_limit = image_limit
+        self.batch_size = batch_size
+        # == batch size of 1
+        self.no_batch = no_batch
+        # only relevant to models that require input with 3 channels
+        self.create_channel_dummies = create_channel_dummies
+        
+        self.train_size = train_size
+        self.validation_size = validation_size
+        self.test_size = test_size
+        
+        self.use_gpu = use_gpu
+        self.verbose = verbose
+
 class TrainParameters:
     '''configuration holder'''
     def __init__(self,
@@ -12,7 +36,6 @@ class TrainParameters:
                  **kwargs):
         ###############################
         # DATA
-        
         self.data_dir = data_dir
         self.save_dir = save_dir
         self.image_limit = image_limit
@@ -47,6 +70,7 @@ class TrainParameters:
         # ...
         
         # linear regression
+        # ...
         
         # svc
         self.svc_l2 = svc_l2

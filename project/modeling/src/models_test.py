@@ -30,11 +30,19 @@ class ModelsTestCase(unittest.TestCase):
     '''
     def setUp(self):
         tf.random.set_seed(42)
+        self._dataset_params = ModelsTestCase.create_dataset_params()
         self._cnn_train_params = ModelsTestCase.create_cnn_train_params()
         self._vgg16_train_params = ModelsTestCase.create_vgg16_train_params()
         self._vgg16_mpncov_train_params = ModelsTestCase.create_vgg16_mpncov_train_params()
         self._lr_params = ModelsTestCase.create_logistic_regression_params()
         self._svc_params = ModelsTestCase.create_svc_params()
+    
+    def create_dataset_params():
+        return parameters.DatasetParameters(#data_dir='gs://dsci591_g4mic/images_32x32',
+                                            #image_size=32,
+                                            data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
+                                            image_size=256,
+                                            )
     
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
@@ -112,10 +120,10 @@ class ModelsTestCase(unittest.TestCase):
         return parameters.TrainParameters(**args._asdict())
     
     def create_logistic_regression_params():
-        args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
-                        image_size=32,
-                        #data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
-                        #image_size=256,
+        args = MockArgs(#data_dir='gs://dsci591_g4mic/images_32x32',
+                        #image_size=32,
+                        data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
+                        image_size=256,
                         save_dir='./data',
                         image_limit=30,
                         no_batch=True,
@@ -223,6 +231,13 @@ class ModelsTestCase(unittest.TestCase):
         batch_images, batch_labels = data_split['train'][0]
         expected_channels = 3
         self.assertEqual(batch_images[0].shape[-1], expected_channels)
+    
+    def test_create_dataset_with_dataset_params(self):
+        data_split = dataset.load_generators(self._dataset_params)
+        self.assertIsNotNone(data_split)
+        batch_images, batch_labels = data_split['train'][0]
+        self.assertEqual(batch_images.shape[0], self._dataset_params.batch_size)
+        self.assertEqual(batch_labels.shape[0], self._dataset_params.batch_size)
     
     def test_train_eval_cnn(self):
         model = self.create_cnn()

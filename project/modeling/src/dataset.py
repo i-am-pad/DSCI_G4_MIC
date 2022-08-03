@@ -42,7 +42,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         # shuffle to ensure classes are mixed when split partitions are created
         np.random.shuffle(self._filepaths)
         
-        if type(params) == parameters.TrainParameters:
+        if type(params) in [parameters.TrainParameters, parameters.DatasetParameters]:
             train_size = int(params.train_size * len(self._filepaths))
             validation_size = int(params.validation_size * len(self._filepaths))
             #test_size = len(self._filepaths) - train_size - validation_size
