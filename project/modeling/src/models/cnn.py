@@ -74,6 +74,7 @@ class Classifier(tf.keras.Model):
         self._classifier = tf.keras.Sequential(
             layers = [
                 layers.Flatten(),
+                layers.Dropout(params.dropout_p),
                 #layers.Dense(16, activation='relu'),
                 layers.Dense(64, activation='relu'),
                 #layers.Dense(2, activation='softmax'),

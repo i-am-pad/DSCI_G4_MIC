@@ -88,7 +88,7 @@ def get_args():
     ap.add_argument('--trial', type=str, default='trial', help='qualifier between experiments used in saved artifacts if --save-model-evaluation is enabled')
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
-    ap.add_argument('--class-weight', type=float, default=2., help='imbalance factor applied to benign class')
+    ap.add_argument('--dropout', type=float, default=0.2, help='dropout rate for base classifier regularization')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')

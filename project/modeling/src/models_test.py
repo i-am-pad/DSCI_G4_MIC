@@ -14,7 +14,7 @@ import models.logistic_regression
 import models.model
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size class_weight create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size dropout_p create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -58,7 +58,7 @@ class ModelsTestCase(unittest.TestCase):
                         use_imagenet_weights=False,
                         dimension_reduction=None,
                         svc_l2=0.01,
-                        class_weight=2,
+                        dropout_p=0.2,
                         model='cnn',
                         model_version='cnn_v1',
                         optimizer='adam',
@@ -79,7 +79,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        class_weight=2,
+                        dropout_p=0.2,
                         create_channel_dummies=True,
                         use_imagenet_weights=None,
                         dimension_reduction=None,
@@ -104,7 +104,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        class_weight=2,
+                        dropout_p=0.2,
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -131,7 +131,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        class_weight=2,
+                        dropout_p=0.2,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -158,7 +158,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        class_weight=2,
+                        dropout_p=0.2,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
