@@ -14,7 +14,7 @@ import models.logistic_regression
 import models.model
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu trial epochs batch_size dropout_p create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout_p create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -51,6 +51,9 @@ class ModelsTestCase(unittest.TestCase):
                         image_size=32,
                         no_batch=False,
                         use_gpu=True,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -76,6 +79,9 @@ class ModelsTestCase(unittest.TestCase):
                         image_size=32,
                         no_batch=False,
                         use_gpu=True,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -101,6 +107,9 @@ class ModelsTestCase(unittest.TestCase):
                         image_size=32,
                         no_batch=False,
                         use_gpu=True,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -128,6 +137,9 @@ class ModelsTestCase(unittest.TestCase):
                         image_limit=30,
                         no_batch=True,
                         use_gpu=False,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
                         trial='trial',
                         epochs=1,
                         batch_size=2,
@@ -155,6 +167,9 @@ class ModelsTestCase(unittest.TestCase):
                         image_limit=30,
                         no_batch=True,
                         use_gpu=False,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
                         trial='trial',
                         epochs=1,
                         batch_size=2,

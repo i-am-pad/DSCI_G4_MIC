@@ -56,7 +56,10 @@ def train(params, model, data_split):
                                 restore_best_weights=False,
                             ),
                         ],
-                        
+                        max_queue_size = params.max_queue_size,
+                        workers = params.workers,
+                        # n.b. this seems to cause a lot of sadness when engaged, beware
+                        use_multiprocessing = params.use_multiprocessing,
                         verbose = params.verbose,
                         )
     
@@ -80,6 +83,9 @@ def get_args():
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
     ap.add_argument('--no-batch', action='store_true', help=r'use single batch for training')
     ap.add_argument('--use-gpu', action=argparse.BooleanOptionalAction, default=True, help=r'use GPU')
+    ap.add_argument('--workers', type=int, default=1, help=r'number of workers for data loading')
+    ap.add_argument('--use-multiprocessing', action=argparse.BooleanOptionalAction, default=False, help=r'use multiprocessing for data loading')
+    ap.add_argument('--max-queue-size', type=int, default=10, help=r'maximum number of queued samples')
     
     #######################
     # MODEL

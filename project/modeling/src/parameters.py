@@ -27,7 +27,7 @@ class DatasetParameters:
 class TrainParameters:
     '''configuration holder'''
     def __init__(self,
-                 data_dir, save_dir, image_limit, image_size, no_batch, use_gpu,
+                 data_dir, save_dir, image_limit, image_size, no_batch, use_gpu, workers, use_multiprocessing, max_queue_size,
                  trial, epochs, batch_size, dropout,
                  create_channel_dummies, use_imagenet_weights, dimension_reduction,
                  svc_l2,
@@ -40,8 +40,11 @@ class TrainParameters:
         self.save_dir = save_dir
         self.image_limit = image_limit
         self.image_size = image_size
-        self.use_gpu = use_gpu
         self.no_batch = no_batch
+        self.use_gpu = use_gpu
+        self.workers = workers
+        self.use_multiprocessing = use_multiprocessing
+        self.max_queue_size = max_queue_size
         self.normalize = True
         
         ###############################
