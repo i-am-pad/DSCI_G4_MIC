@@ -39,6 +39,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         if params.image_limit:
             # applies file limit by class
             filepaths = [ fps[:params.image_limit] for fps in filepaths ]
+            self._label_counts = {label: params.image_limit for label in self._label_counts}
         
         # flattens the result
         self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
@@ -102,6 +103,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
     
     @property
     def label_counts(self):
+        '''total dataset's label counts before any splitting'''
         return self._label_counts
     
     def on_epoch_end(self):

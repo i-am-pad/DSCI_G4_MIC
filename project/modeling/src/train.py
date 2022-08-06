@@ -22,12 +22,14 @@ def train(params, model, data_split):
     
     # if using the full dataset as of 2022-07-25:
     # malicious = 204855, benign = 33773, total = 238628
-    # 1/benign    * total / 2 = 3.5328
+    # 1/benign    * total/2 = 3.5328
     # 1/malicious * total/2 = 0.5824
     class_weights = {
-        dataset.G4MicDataGenerator.LABELS[label]: (1./num_files)*len(data_split)/2.
-        for label, num_files in data_split.items()
+        dataset.G4MicDataGenerator.LABELS[label]:
+            (1./num_files) * sum(data_split['train'].label_counts.values())/2.
+        for label, num_files in data_split['train'].label_counts.items()
     }
+    logging.info(f'class instances: {data_split["train"].label_counts}')
     logging.info(f'class weights: {class_weights}')
     
     history = model.fit(data_split['train'],

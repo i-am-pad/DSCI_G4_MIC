@@ -28,7 +28,7 @@ class TrainParameters:
     '''configuration holder'''
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size, no_batch, use_gpu,
-                 trial, epochs, batch_size, dropout_p,
+                 trial, epochs, batch_size, dropout,
                  create_channel_dummies, use_imagenet_weights, dimension_reduction,
                  svc_l2,
                  model, model_version, optimizer, learning_rate, weight_decay,
@@ -56,7 +56,7 @@ class TrainParameters:
         self.trial = trial
         self.epochs = epochs
         self.batch_size = batch_size
-        self.dropout_p = dropout_p
+        self.dropout_p = dropout
         self.train_size = 0.8
         self.validation_size = 0.2
         #self.test_size = 1. - self.train_size - self.validation_size
