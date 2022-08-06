@@ -56,7 +56,6 @@ class TrainParameters:
         self.trial = trial
         self.epochs = epochs
         self.batch_size = batch_size
-        self.class_weight = class_weight
         self.dropout_p = dropout_p
         self.train_size = 0.8
         self.validation_size = 0.2

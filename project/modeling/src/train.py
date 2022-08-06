@@ -24,7 +24,11 @@ def train(params, model, data_split):
     # malicious = 204855, benign = 33773, total = 238628
     # 1/benign    * total / 2 = 3.5328
     # 1/malicious * total/2 = 0.5824
-    class_weights = {0: 3.5328, 1: 0.5824} if not params.image_limit else {0: 1., 1: 1.}
+    class_weights = {
+        dataset.G4MicDataGenerator.LABELS[label]: (1./num_files)*len(data_split)/2.
+        for label, num_files in data_split.items()
+    }
+    logging.info(f'class weights: {class_weights}')
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
@@ -34,15 +38,14 @@ def train(params, model, data_split):
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
-                                #monitor='val_accuracy',
-                                monitor='accuracy',
+                                monitor='val_accuracy',
                                 mode='max',
                                 save_best_only=True,
                             ),
                             # https://www.tensorflow.org/tensorboard/graphs
                             tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
                             tf.keras.callbacks.EarlyStopping(
-                                monitor="loss",
+                                monitor="val_loss",
                                 min_delta=0.001,
                                 patience=3,
                                 verbose=1 if params.verbose else 0,

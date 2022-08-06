@@ -21,6 +21,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, params, split):
         self._params = params
         self._split = split
+        self._label_counts = {'benign': 0, 'malicious': 0}
         
         filepaths = []
         for label in self.LABELS.keys():
@@ -28,9 +29,12 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             registry = os.path.join(params.data_dir, f'{label}.txt')
             if tf.io.gfile.exists(os.path.join(registry)):
                 with open(registry, 'r') as fin:
-                    filepaths.append([os.path.join(dir, fp.strip()) for fp in fin.readlines()])
+                    paths = [os.path.join(dir, fp.strip()) for fp in fin.readlines()]
             else:
-                filepaths.append(tf.io.gfile.glob(os.path.join(dir, '*')))
+                paths = tf.io.gfile.glob(os.path.join(dir, '*'))
+            
+            filepaths.append(paths)
+            self._label_counts[label] = len(paths)
         
         if params.image_limit:
             # applies file limit by class
@@ -95,6 +99,10 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
                 #tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
                 tf.convert_to_tensor(labels)
                )
+    
+    @property
+    def label_counts(self):
+        return self._label_counts
     
     def on_epoch_end(self):
         self.indices = np.arange(len(self._filepaths))
