@@ -52,7 +52,7 @@ def train(params, model, data_split):
                                 min_delta=0.001,
                                 patience=3,
                                 verbose=1 if params.verbose else 0,
-                                mode="max",
+                                mode="min",
                                 baseline=None,
                                 restore_best_weights=False,
                             ),
