@@ -150,7 +150,7 @@ class VGG16_MPNCOV(tf.keras.Model):
         super(VGG16_MPNCOV, self).__init__()
         channels = 3
         
-        h_lengths_to_crop = math.ceil(params.image_size / params.crop_size) if params.crop_size else 0
+        h_lengths_to_crop = math.ceil(params.crop_size / params.image_size) if params.crop_size else 0
         self._cropping = layers.Cropping2D(cropping=((h_lengths_to_crop,0), (0,0)))
         h_dim = params.image_size - h_lengths_to_crop
         

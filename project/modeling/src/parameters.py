@@ -40,7 +40,8 @@ class TrainParameters:
         self.save_dir = save_dir
         self.image_limit = image_limit
         self.image_size = image_size
-        self.crop_size = crop_size
+        # PE headers generally don't go over a kilobyte in size
+        self.crop_size = min(crop_size, 1024)
         self.no_batch = no_batch
         self.use_gpu = use_gpu
         self.workers = workers
