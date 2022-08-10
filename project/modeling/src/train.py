@@ -77,11 +77,11 @@ def get_args():
     
     #######################
     # DATA
-    
     ap.add_argument('--data-dir', type=str, default='./data', help=r'data directory for reference data')
     ap.add_argument('--save-dir', type=str, default='./data', help=r'directory for saving data to')
     ap.add_argument('--image-limit', type=int, default=0, help=r'limit number of images to use')
     ap.add_argument('--image-size', type=int, default=648, help=r'input image dimension for H and W')
+    ap.add_argument('--crop-size', type=int, default=0, help='number of bytes to crop across the H axis starting from the head. cropped bytes count is rounded up to the nearest multiple of --image-size. *PE headers generally will not generally exceed 1024 bytes, so this is limited to that value but still with --image-size rounding.')
     ap.add_argument('--no-batch', action='store_true', help=r'use single batch for training')
     ap.add_argument('--use-gpu', action=argparse.BooleanOptionalAction, default=True, help=r'use GPU')
     ap.add_argument('--workers', type=int, default=1, help=r'number of workers for data loading')
