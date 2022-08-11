@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import tensorflow as tf
 from tensorflow.keras import layers, metrics
 import tensorflow_addons as tfa
@@ -148,17 +149,23 @@ class VGG16_MPNCOV(tf.keras.Model):
     def __init__(self, params):
         super(VGG16_MPNCOV, self).__init__()
         channels = 3
-        self._rescaling = layers.Rescaling(1./255, input_shape=(params.image_size, params.image_size, channels))
+        
+        h_lengths_to_crop = math.ceil(params.crop_size / params.image_size) if params.crop_size else 0
+        self._cropping = layers.Cropping2D(cropping=((h_lengths_to_crop,0), (0,0)))
+        h_dim = params.image_size - h_lengths_to_crop
+        
+        self._rescaling = layers.Rescaling(1./255, input_shape=(h_dim, params.image_size, channels))
         self._features = tf.keras.applications.VGG16(include_top=False,
                                                      weights='imagenet' if params.use_imagenet_weights else None,
-                                                     input_shape=(params.image_size, params.image_size, channels))
+                                                     input_shape=(h_dim, params.image_size, channels))
         if params.use_imagenet_weights:
             self.freeze()
         self._mpncov = MPNCOV.MPNCOV(params)
         self._classifier = Classifier(params)
 
     def call(self, inputs):
-        h = self._rescaling(inputs)
+        h = self._cropping(inputs)
+        h = self._rescaling(h)
         h = self._features(h)
         h = self._mpncov(h)
         h = self._classifier(h)

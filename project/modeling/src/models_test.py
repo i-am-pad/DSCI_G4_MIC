@@ -14,7 +14,7 @@ import models.logistic_regression
 import models.model
 import parameters
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout_p create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size crop_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -49,6 +49,7 @@ class ModelsTestCase(unittest.TestCase):
                         save_dir='./data',
                         image_limit=30,
                         image_size=32,
+                        crop_size=0,
                         no_batch=False,
                         use_gpu=True,
                         workers=1,
@@ -61,7 +62,7 @@ class ModelsTestCase(unittest.TestCase):
                         use_imagenet_weights=False,
                         dimension_reduction=None,
                         svc_l2=0.01,
-                        dropout_p=0.2,
+                        dropout=0.2,
                         model='cnn',
                         model_version='cnn_v1',
                         optimizer='adam',
@@ -77,6 +78,7 @@ class ModelsTestCase(unittest.TestCase):
                         save_dir='./data',
                         image_limit=30,
                         image_size=32,
+                        crop_size=0,
                         no_batch=False,
                         use_gpu=True,
                         workers=1,
@@ -85,7 +87,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        dropout_p=0.2,
+                        dropout=0.2,
                         create_channel_dummies=True,
                         use_imagenet_weights=None,
                         dimension_reduction=None,
@@ -101,10 +103,13 @@ class ModelsTestCase(unittest.TestCase):
         return parameters.TrainParameters(**args._asdict())        
     
     def create_vgg16_mpncov_train_params():
-        args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
+        args = MockArgs(#data_dir='gs://dsci591_g4mic/images_32x32',
+                        #image_size=32,
+                        data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
+                        image_size=256,
                         save_dir='./data',
                         image_limit=30,
-                        image_size=32,
+                        crop_size=32,
                         no_batch=False,
                         use_gpu=True,
                         workers=1,
@@ -113,7 +118,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        dropout_p=0.2,
+                        dropout=0.2,
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -135,6 +140,7 @@ class ModelsTestCase(unittest.TestCase):
                         image_size=256,
                         save_dir='./data',
                         image_limit=30,
+                        crop_size=32,
                         no_batch=True,
                         use_gpu=False,
                         workers=1,
@@ -143,7 +149,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        dropout_p=0.2,
+                        dropout=0.2,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -165,6 +171,7 @@ class ModelsTestCase(unittest.TestCase):
                         image_size=256,
                         save_dir='./data',
                         image_limit=30,
+                        crop_size=32,
                         no_batch=True,
                         use_gpu=False,
                         workers=1,
@@ -173,7 +180,7 @@ class ModelsTestCase(unittest.TestCase):
                         trial='trial',
                         epochs=1,
                         batch_size=2,
-                        dropout_p=0.2,
+                        dropout=0.2,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
