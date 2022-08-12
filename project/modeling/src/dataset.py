@@ -13,8 +13,8 @@ import parameters
 import utilities
 
 class G4MicDataGenerator(tf.keras.utils.Sequence):
-    '''this is a work around to the memory limitations of loading the entirety of this dataset.
-    it loads images into host (GPU) memory only in batch sized blocks.
+    '''this is a work around for the memory limitations of loading the entirety of this dataset.
+    it loads images into memory (host or GPU depending on params) only in batch sized blocks.
     '''
     LABELS = {'benign': 0, 'malicious': 1}
     
@@ -76,7 +76,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             raise ValueError(f'Unknown parameters type: {type(params)}')
 
         self.on_epoch_end()
-  
+
     def __len__(self):
         return len(self._filepaths) if self._params.no_batch else len(self._filepaths) // self._params.batch_size
    
