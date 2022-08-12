@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
@@ -21,12 +22,77 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, params, split):
         self._params = params
         self._split = split
+        self._init_filepaths()
+
+    def _init_filepaths(self):
+        self._filepaths = self._init_binary() if not self._params.multilabel else self._init_multilabel()
+        
+        if type(self._params) in [parameters.TrainParameters, parameters.DatasetParameters]:
+            train_size = int(self._params.train_size * len(self._filepaths))
+            validation_size = int(self._params.validation_size * len(self._filepaths))
+            #test_size = len(self._filepaths) - train_size - validation_size
+            
+            # TODO: randomize selection of filepaths
+            if self._split == 'train':
+                self._filepaths = self._filepaths[:train_size]
+            elif self._split == 'validation':
+                self._filepaths = self._filepaths[train_size : train_size + validation_size]
+            elif self._split == 'test':
+                self._filepaths = self._filepaths[train_size + validation_size :]
+            
+            if not self._params.no_batch:
+                num_files = len(self._filepaths)
+                excess_files = num_files % self._params.batch_size
+                self._filepaths = self._filepaths[:num_files - excess_files]
+            
+            if len(self._filepaths) == 0 and self._split != 'test':
+                raise ValueError(f'No files found for split {self._split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
+            
+            if self._params.verbose:
+                logging.info(f'dataset {self._split}: {len(self._filepaths)} files')
+        elif type(self._params) == parameters.InferParameters:
+            pass
+        else:
+            raise ValueError(f'Unknown parameters type: {type(self._params)}')
+
+        self.on_epoch_end()
+
+    def _init_multilabel(self):
+        '''initializes the baseline benign and malicious classes unless configured
+        for multilabel classification. a registry is used to determine the labels
+        when in multilabel mode.
+        '''
+        if not self._params.multilabel:
+            return
+        
+        registry_path = os.path.join(self._params.data_dir, 'registry.csv')
+        self._df_r = pd.read_csv(registry_path)
+        
+        G4MicDataGenerator.LABELS = {
+            c: ix
+            for ix, c in enumerate([c for c in self._df_r.columns if not c in {'path', 'file', 'base_file', 'kind'}])
+            
+        }
+        self._label_counts = dict(self._df_r.loc[:, self.LABELS.keys()].sum())
+        
+        # TODO: how should image-limit be applied here? it's tougher than the binary case, since
+        # there's much more imbalance in these classes.
+        
+        # shuffling
+        self._df_r = self._df_r.sample(frac=1.).reset_index(drop=True)
+        
+        return self._df_r.path.values
+    
+    def _init_binary(self):
+        if self._params.multilabel:
+            return
+        
+        G4MicDataGenerator.LABELS = {'benign': 0, 'malicious': 1}
         self._label_counts = {'benign': 0, 'malicious': 0}
         
-        filepaths = []
         for label in self.LABELS.keys():
-            dir = os.path.join(params.data_dir, label)
-            registry = os.path.join(params.data_dir, f'{label}.txt')
+            dir = os.path.join(self._params.data_dir, label)
+            registry = os.path.join(self._params.data_dir, f'{label}.txt')
             if tf.io.gfile.exists(os.path.join(registry)):
                 with open(registry, 'r') as fin:
                     paths = [os.path.join(dir, fp.strip()) for fp in fin.readlines()]
@@ -36,46 +102,14 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             filepaths.append(paths)
             self._label_counts[label] = len(paths)
         
-        if params.image_limit:
+        if self._params.image_limit:
             # applies file limit by class
-            filepaths = [ fps[:params.image_limit] for fps in filepaths ]
-            self._label_counts = {label: params.image_limit for label in self._label_counts}
+            filepaths = [ fps[:self._params.image_limit] for fps in filepaths ]
+            self._label_counts = {label: self._params.image_limit for label in self._label_counts}
         
-        # flattens the result
-        self._filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
+        filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
         
-        # shuffle to ensure classes are mixed when split partitions are created
-        np.random.shuffle(self._filepaths)
-        
-        if type(params) in [parameters.TrainParameters, parameters.DatasetParameters]:
-            train_size = int(params.train_size * len(self._filepaths))
-            validation_size = int(params.validation_size * len(self._filepaths))
-            #test_size = len(self._filepaths) - train_size - validation_size
-            
-            # TODO: randomize selection of filepaths
-            if split == 'train':
-                self._filepaths = self._filepaths[:train_size]
-            elif split == 'validation':
-                self._filepaths = self._filepaths[train_size : train_size + validation_size]
-            elif split == 'test':
-                self._filepaths = self._filepaths[train_size + validation_size :]
-            
-            if not self._params.no_batch:
-                num_files = len(self._filepaths)
-                excess_files = num_files % self._params.batch_size
-                self._filepaths = self._filepaths[:num_files - excess_files]
-            
-            if len(self._filepaths) == 0 and split != 'test':
-                raise ValueError(f'No files found for split {split} with batch size alignment to {self._params.batch_size}. num_files before alignment: {num_files}')
-            
-            if self._params.verbose:
-                logging.info(f'dataset {split}: {len(self._filepaths)} files')
-        elif type(params) == parameters.InferParameters:
-            pass
-        else:
-            raise ValueError(f'Unknown parameters type: {type(params)}')
-
-        self.on_epoch_end()
+        return np.random.shuffle(filepaths)
 
     def __len__(self):
         return len(self._filepaths) if self._params.no_batch else len(self._filepaths) // self._params.batch_size
@@ -93,11 +127,13 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             if self._params.create_channel_dummies:
                 data = tf.concat([data, data, data], axis=-1)
             images.append(data)
-            labels.append(self.LABELS['benign'] if 'benign' in fp else self.LABELS['malicious'])
+            
+            if not self._params.multilabel:
+                labels.append(self.LABELS['benign'] if 'benign' in fp else self.LABELS['malicious'])
+            else:
+                labels.append(self._df_r.iloc[ix][self.LABELS.keys()].values.astype(np.int32))
         
         return (tf.convert_to_tensor(images),
-                # to_categorical applies one-hot encoding to label encoding
-                #tf.keras.utils.to_categorical(np.array(labels), num_classes=len(self.LABELS))
                 tf.convert_to_tensor(labels)
                )
     

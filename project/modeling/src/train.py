@@ -101,6 +101,7 @@ def get_args():
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
     ap.add_argument('--dropout', type=float, default=0.2, help='dropout rate for base classifier regularization')
+    ap.add_argument('--multilabel', action=argparse.BooleanOptionalAction, default=False, help='use multi-label classification')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
