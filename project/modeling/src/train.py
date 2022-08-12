@@ -21,14 +21,12 @@ def train(params, model, data_split):
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
     
-    # if using the full dataset as of 2022-07-25:
-    # malicious = 204855, benign = 33773, total = 238628
-    # 1/benign    * total/2 = 3.5328
-    # 1/malicious * total/2 = 0.5824
+    total_files = sum(data_split['train'].label_counts.values())
+    num_classes = float(len(data_split['train'].label_counts))
     class_weights = {
         dataset.G4MicDataGenerator.LABELS[label]:
-            (1./num_files) * sum(data_split['train'].label_counts.values())/2.
-        for label, num_files in data_split['train'].label_counts.items()
+            1./num_class_instances * total_files/num_classes
+        for label, num_class_instances in data_split['train'].label_counts.items()
     }
     logging.info(f'class instances: {data_split["train"].label_counts}')
     logging.info(f'class weights: {class_weights}')
