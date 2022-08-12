@@ -75,12 +75,14 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         }
         self._label_counts = dict(self._df_r.loc[:, self.LABELS.keys()].sum())
         
-        # TODO: how should image-limit be applied here? it's tougher than the binary case, since
-        # there's much more imbalance in these classes.
-        
-        # shuffling
-        self._df_r = self._df_r.sample(frac=1.).reset_index(drop=True)
-        
+        # this is different than the binary case! image limit is applied to the full
+        # dataset rather than per class.
+        if self._params.image_limit:
+            self._df_r = self._df_r.sample(n=self._params.image_limit)
+        else:
+            # shuffles everything
+            self._df_r = self._df_r.sample(frac=1.).reset_index(drop=True)
+            
         return self._df_r.path.values
     
     def _init_binary(self):
@@ -90,6 +92,7 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         G4MicDataGenerator.LABELS = {'benign': 0, 'malicious': 1}
         self._label_counts = {'benign': 0, 'malicious': 0}
         
+        # TODO: just use the full dataset registry instead
         for label in self.LABELS.keys():
             dir = os.path.join(self._params.data_dir, label)
             registry = os.path.join(self._params.data_dir, f'{label}.txt')

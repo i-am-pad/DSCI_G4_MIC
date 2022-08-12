@@ -64,12 +64,10 @@ def train(params, model, data_split):
                         verbose = params.verbose,
                         )
     
-    if len(data_split['test']):
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
-        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
-    else:
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0)
-        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+    # TODO: generalize this better to handle the possible varied metrics
+    #if len(data_split['test']):
+    #    test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], #verbose=2 if params.verbose else 0)
+    #    logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: ##{test_r}, f1: {test_f1}')
 
 def get_args():
     import argparse
@@ -91,7 +89,7 @@ def get_args():
     #######################
     # MODEL
     ap.add_argument('--model', type=str, choices=['cnn', 'lr'], required=True)
-    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'lr_v1', 'svc_v1'], default='', required=False)
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'vgg16_mpncov_multilabel_v1', 'lr_v1', 'svc_v1'], default='', required=False)
     
     # training
     ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')

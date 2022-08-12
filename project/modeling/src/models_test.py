@@ -35,6 +35,7 @@ class ModelsTestCase(unittest.TestCase):
         self._cnn_train_params = ModelsTestCase.create_cnn_train_params()
         self._vgg16_train_params = ModelsTestCase.create_vgg16_train_params()
         self._vgg16_mpncov_train_params = ModelsTestCase.create_vgg16_mpncov_train_params()
+        self._vgg16_mpncov_multilabel_train_params = ModelsTestCase.create_vgg16_mpncov_multilabel_train_params()
         self._lr_params = ModelsTestCase.create_logistic_regression_params()
         self._svc_params = ModelsTestCase.create_svc_params()
     
@@ -145,6 +146,38 @@ class ModelsTestCase(unittest.TestCase):
                         debug=False)
         return parameters.TrainParameters(**args._asdict())
     
+    def create_vgg16_mpncov_multilabel_train_params():
+        args = MockArgs(#data_dir='gs://dsci591_g4mic/images_32x32',
+                        #image_size=32,
+                        data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
+                        image_size=256,
+                        save_dir='./data',
+                        image_limit=30,
+                        crop_size=32,
+                        no_batch=False,
+                        use_gpu=True,
+                        workers=1,
+                        use_multiprocessing=False,
+                        max_queue_size=10,
+                        trial='trial',
+                        epochs=1,
+                        batch_size=2,
+                        dropout=0.2,
+                        multilabel=True,
+                        create_channel_dummies=True,
+                        use_imagenet_weights=True,
+                        dimension_reduction=64,
+                        svc_l2=0.01,
+                        model='cnn',
+                        model_version='vgg16_mpncov_multilabel_v1',
+                        optimizer='adam',
+                        learning_rate=0.001,
+                        weight_decay=0.0,
+                        describe=False,
+                        verbose=True,
+                        debug=False)
+        return parameters.TrainParameters(**args._asdict())
+    
     def create_logistic_regression_params():
         args = MockArgs(#data_dir='gs://dsci591_g4mic/images_32x32',
                         #image_size=32,
@@ -219,6 +252,10 @@ class ModelsTestCase(unittest.TestCase):
     
     def create_vgg16_mpncov(self):
         model = models.model.get_model(self._vgg16_mpncov_train_params)
+        return model
+        
+    def create_vgg16_mpncov_multilabel(self, dataset):
+        model = models.model.get_model(self._vgg16_mpncov_multilabel_train_params, dataset=dataset)
         return model
     
     def create_lr(self):
@@ -307,6 +344,17 @@ class ModelsTestCase(unittest.TestCase):
     def test_train_eval_vgg16_mpncov(self):
         model = self.create_vgg16_mpncov()
         data_split = dataset.load_generators(self._vgg16_mpncov_train_params)
+        history = model.fit(data_split['train'],
+                            validation_data = data_split['validation'],
+                            epochs = self._vgg16_mpncov_train_params.epochs,
+                            verbose = self._vgg16_mpncov_train_params.verbose,
+                            shuffle=True,
+                            )
+        _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
+        
+    def test_train_eval_vgg16_mpncov_multilabel(self):
+        data_split = dataset.load_generators(self._vgg16_mpncov_multilabel_train_params)
+        model = self.create_vgg16_mpncov_multilabel(data_split['train'])
         history = model.fit(data_split['train'],
                             validation_data = data_split['validation'],
                             epochs = self._vgg16_mpncov_train_params.epochs,
