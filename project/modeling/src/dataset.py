@@ -68,13 +68,6 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         registry_path = os.path.join(self._params.data_dir, 'registry.csv')
         self._df_r = pd.read_csv(registry_path)
         
-        G4MicDataGenerator.LABELS = {
-            c: ix
-            for ix, c in enumerate([c for c in self._df_r.columns if not c in {'path', 'file', 'base_file', 'kind'}])
-            
-        }
-        self._label_counts = dict(self._df_r.loc[:, self.LABELS.keys()].sum())
-        
         # this is different than the binary case! image limit is applied to the full
         # dataset rather than per class.
         if self._params.image_limit:
@@ -82,7 +75,20 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         else:
             # shuffles everything
             self._df_r = self._df_r.sample(frac=1.).reset_index(drop=True)
-            
+        
+        self._label_counts = {
+            l: c
+            for l, c in dict(self._df_r.loc[:, [c for c in self._df_r.columns if not c in {'path', 'file', 'base_file', 'kind'}]].sum()).items()
+            # TODO: why does this filter break training? it's nice to have when a class isn't represented
+            #       due to image_limit. that scenario introduces numeric instability in the metrics.
+            #if c
+        }
+        
+        G4MicDataGenerator.LABELS = {
+            l: ix
+            for ix, l in enumerate(self._label_counts.keys())
+        }
+        
         return self._df_r.path.values
     
     def _init_binary(self):

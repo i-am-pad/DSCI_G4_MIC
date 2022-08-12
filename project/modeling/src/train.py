@@ -143,14 +143,15 @@ def init():
 def main():
     params = init()
     
-    model = models.model.get_model(params)
+    data_split = dataset.load_generators(params)
+    
+    # just need one dataset split for access to summary dataset information
+    model = models.model.get_model(params, data_split['train'])
     
     if params.verbose or params.describe:
         utilities.summary_plus(model)
         if params.describe:
             return
-    
-    data_split = dataset.load_generators(params)
     
     train(params, model, data_split)
 
