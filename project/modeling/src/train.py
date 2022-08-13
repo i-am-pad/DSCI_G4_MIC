@@ -13,6 +13,7 @@ import dataset
 import models.model
 import parameters
 import utilities
+import visualize
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
@@ -21,17 +22,16 @@ def train(params, model, data_split):
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
     
-    # if using the full dataset as of 2022-07-25:
-    # malicious = 204855, benign = 33773, total = 238628
-    # 1/benign    * total/2 = 3.5328
-    # 1/malicious * total/2 = 0.5824
+    total_files = sum(data_split['train'].label_counts.values())
+    num_classes = float(len(data_split['train'].label_counts))
     class_weights = {
         dataset.G4MicDataGenerator.LABELS[label]:
-            (1./num_files) * sum(data_split['train'].label_counts.values())/2.
-        for label, num_files in data_split['train'].label_counts.items()
+            1./num_class_instances * total_files/num_classes
+        for label, num_class_instances in data_split['train'].label_counts.items()
     }
     logging.info(f'class instances: {data_split["train"].label_counts}')
     logging.info(f'class weights: {class_weights}')
+    labels = data_split['train'].LABELS.keys()
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
@@ -46,7 +46,7 @@ def train(params, model, data_split):
                                 save_best_only=True,
                             ),
                             # https://www.tensorflow.org/tensorboard/graphs
-                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path),
                             tf.keras.callbacks.EarlyStopping(
                                 monitor="val_loss",
                                 min_delta=0.001,
@@ -56,6 +56,8 @@ def train(params, model, data_split):
                                 baseline=None,
                                 restore_best_weights=False,
                             ),
+                            visualize.MultiLabelConfusionMatrixPrintCallback(labels),
+                            visualize.MultiLabelConfusionMatrixPlotCallback(params, labels),
                         ],
                         max_queue_size = params.max_queue_size,
                         workers = params.workers,
@@ -64,12 +66,32 @@ def train(params, model, data_split):
                         verbose = params.verbose,
                         )
     
+    
     if len(data_split['test']):
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0)
-        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+        split = 'test'
+        results = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0, 
+                                 return_dict=True,
+                                 max_queue_size = params.max_queue_size,
+                                 workers = params.workers,
+                                 use_multiprocessing = params.use_multiprocessing,
+                                 )
     else:
-        test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0)
-        logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: {test_r}, f1: {test_f1}')
+        split = 'validation'
+        results = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0, 
+                                 return_dict=True,
+                                 max_queue_size = params.max_queue_size,
+                                 workers = params.workers,
+                                 use_multiprocessing = params.use_multiprocessing,
+                                 )
+    
+    logging.info(f'{split} results: {results}')
+    
+    if params.multilabel:
+        labels = data_split[split].LABELS.keys()
+        visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
+        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix.png')
+        visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
+        logging.info(f'saved {split} confusion matrix plot to {save_path}')
 
 def get_args():
     import argparse
@@ -91,7 +113,7 @@ def get_args():
     #######################
     # MODEL
     ap.add_argument('--model', type=str, choices=['cnn', 'lr'], required=True)
-    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'lr_v1', 'svc_v1'], default='', required=False)
+    ap.add_argument('--model-version', type=str, choices=['cnn_v1', 'vgg16_v1', 'vgg16_mpncov_v1', 'vgg16_mpncov_multilabel_v1', 'lr_v1', 'svc_v1'], default='', required=False)
     
     # training
     ap.add_argument('--optimizer', type=str, default='adam', help='model optimization algorithm selected from https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile')
@@ -101,6 +123,7 @@ def get_args():
     ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--batch-size', type=int, default=1)
     ap.add_argument('--dropout', type=float, default=0.2, help='dropout rate for base classifier regularization')
+    ap.add_argument('--multilabel', action=argparse.BooleanOptionalAction, default=False, help='use multi-label classification')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
@@ -144,14 +167,15 @@ def init():
 def main():
     params = init()
     
-    model = models.model.get_model(params)
+    data_split = dataset.load_generators(params)
+    
+    # just need one dataset split for access to summary dataset information
+    model = models.model.get_model(params, data_split['train'])
     
     if params.verbose or params.describe:
         utilities.summary_plus(model)
         if params.describe:
             return
-    
-    data_split = dataset.load_generators(params)
     
     train(params, model, data_split)
 

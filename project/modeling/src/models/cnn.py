@@ -43,10 +43,11 @@ def get_model_vgg16_v1(params, compile=True):
                     )
     return model
 
-def get_model_vgg16_mpncov_v1(params, compile=True):
-    model = VGG16_MPNCOV(params)
+def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
+    model = VGG16_MPNCOV(params, dataset)
     channels = 3
     model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
+    num_classes = 1 if not dataset else len(dataset.label_counts)
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
@@ -54,18 +55,20 @@ def get_model_vgg16_mpncov_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
-                        tf.keras.metrics.AUC(from_logits=True),
-                        tfa.metrics.F1Score(num_classes=1),
+                        tf.keras.metrics.AUC(from_logits=True, multi_label=params.multilabel, num_labels=num_classes),
+                        tfa.metrics.F1Score(num_classes=num_classes),
+                        tfa.metrics.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes),
                     ],
                     run_eagerly=params.debug,
                     )
     return model
 
 MODEL_VERSION = {
-    '': lambda p, compile: get_model_v1(p, compile),
-    'cnn_v1': lambda p, compile: get_model_v1(p, compile),
-    'vgg16_v1': lambda p, compile: get_model_vgg16_v1(p, compile),
-    'vgg16_mpncov_v1': lambda p, compile: get_model_vgg16_mpncov_v1(p, compile),
+    '': lambda p, _, compile: get_model_v1(p, compile),
+    'cnn_v1': lambda p, _, compile: get_model_v1(p, compile),
+    'vgg16_v1': lambda p, _, compile: get_model_vgg16_v1(p, compile),
+    'vgg16_mpncov_v1': lambda p, _, compile: get_model_vgg16_mpncov_v1(p, compile=compile),
+    'vgg16_mpncov_multilabel_v1': lambda p, dataset, compile: get_model_vgg16_mpncov_v1(p, dataset, compile),
 }
 
 class Classifier(tf.keras.Model):
@@ -76,12 +79,29 @@ class Classifier(tf.keras.Model):
             layers = [
                 layers.Flatten(),
                 layers.Dropout(params.dropout_p),
-                #layers.Dense(16, activation='relu'),
                 layers.Dense(64, activation='relu'),
-                #layers.Dense(2, activation='softmax'),
                 layers.Dense(1, activation='sigmoid'),
             ],
             name='classifier',
+        )
+    
+    def call(self, inputs):
+        return self._classifier(inputs)
+
+class MultiLabelClassifier(tf.keras.Model):
+    def __init__(self, params, dataset):
+        super(MultiLabelClassifier, self).__init__()
+        self._params = params
+        self._classifier = tf.keras.Sequential(
+            layers = [
+                layers.Flatten(),
+                layers.Dropout(params.dropout_p),
+                layers.Dense(768, activation='relu'),
+                # still sigmoid, because this is multilabel; we want to predict a probability for # each label. softmax is not appropriate here, since it's not a probability
+                # distribution with a single best label to predict.
+                layers.Dense(len(dataset.label_counts), activation='sigmoid'),
+            ],
+            name='multilabel_classifier',
         )
     
     def call(self, inputs):
@@ -146,7 +166,7 @@ class VGG16(tf.keras.Model):
 class VGG16_MPNCOV(tf.keras.Model):
     '''a deep convolutional network that combines VGG-16 and MPNCOV
     '''
-    def __init__(self, params):
+    def __init__(self, params, dataset=None):
         super(VGG16_MPNCOV, self).__init__()
         channels = 3
         
@@ -161,7 +181,11 @@ class VGG16_MPNCOV(tf.keras.Model):
         if params.use_imagenet_weights:
             self.freeze()
         self._mpncov = MPNCOV.MPNCOV(params)
-        self._classifier = Classifier(params)
+        
+        if params.multilabel:
+            self._classifier = MultiLabelClassifier(params, dataset)
+        else:
+            self._classifier = Classifier(params)
 
     def call(self, inputs):
         h = self._cropping(inputs)

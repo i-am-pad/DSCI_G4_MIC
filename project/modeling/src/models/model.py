@@ -8,7 +8,7 @@ MODEL_MODULES = {
     'lr': logistic_regression,
 }
 
-def get_model(params, compile=True) -> tf.keras.Model:
+def get_model(params, dataset=None, compile=True) -> tf.keras.Model:
     '''returns an untrained model based on the model_version parameter
     
     args
@@ -30,7 +30,7 @@ def get_model(params, compile=True) -> tf.keras.Model:
     if not model_version:
         raise ValueError(f'unknown model version: {params.model_version}')
     
-    return model_version(params, compile)
+    return model_version(params, dataset, compile)
 
 def load_model(params, has_f1: bool=True) -> tf.keras.Model:
     '''loads a model from a tensorflow format save directory

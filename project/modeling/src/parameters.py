@@ -2,7 +2,7 @@ import tensorflow as tf
 
 class DatasetParameters:
     def __init__(self,
-                 data_dir, image_size, image_limit=None, batch_size=32, no_batch=False, use_gpu=False, create_channel_dummies=False,
+                 data_dir, image_size, image_limit=None, batch_size=32, no_batch=False, use_gpu=False, create_channel_dummies=False,  multilabel=False,
                  train_size=0.8, validation_size=0.2, test_size=0.0,
                  verbose=False):
         self.data_dir = data_dir
@@ -16,6 +16,7 @@ class DatasetParameters:
         self.no_batch = no_batch
         # only relevant to models that require input with 3 channels
         self.create_channel_dummies = create_channel_dummies
+        self.multilabel = multilabel
         
         self.train_size = train_size
         self.validation_size = validation_size
@@ -28,7 +29,7 @@ class TrainParameters:
     '''configuration holder'''
     def __init__(self,
                  data_dir, save_dir, image_limit, image_size, crop_size, no_batch, use_gpu, workers, use_multiprocessing, max_queue_size,
-                 trial, epochs, batch_size, dropout,
+                 trial, epochs, batch_size, dropout, multilabel,
                  create_channel_dummies, use_imagenet_weights, dimension_reduction,
                  svc_l2,
                  model, model_version, optimizer, learning_rate, weight_decay,
@@ -62,6 +63,7 @@ class TrainParameters:
         self.epochs = epochs
         self.batch_size = batch_size
         self.dropout_p = dropout
+        self.multilabel = multilabel
         self.train_size = 0.8
         self.validation_size = 0.2
         #self.test_size = 1. - self.train_size - self.validation_size

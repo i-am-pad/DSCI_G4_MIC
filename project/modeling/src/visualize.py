@@ -1,7 +1,10 @@
+import datetime
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
+import seaborn as sns
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
@@ -91,3 +94,77 @@ def plot_model(params):
 def show_model_summary(params):
     model = models.model.get_model(params, compile=False)
     utilities.summary_plus(model)
+
+
+def print_confusion_matrix(confusion_matrix, axes, class_label, class_names, fontsize=14, do_plot=False, do_print=True):
+    '''adapted from https://stackoverflow.com/questions/62722416/plot-confusion-matrix-for-multilabel-classifcation-python
+    '''
+    df_cm = pd.DataFrame(
+        confusion_matrix.astype(np.int32), index=class_names, columns=class_names,
+    )
+
+    if do_print:
+        logging.info(f'\n{class_label} Confusion Matrix\n{df_cm}\n')
+
+    if do_plot:
+        try:
+            heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cbar=False, ax=axes)
+        except ValueError:
+            raise ValueError("Confusion matrix values must be integers.")
+        heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=fontsize)
+        heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=45, ha='right', fontsize=fontsize)
+        axes.set_ylabel('y')
+        axes.set_xlabel('y_pred')
+        axes.set_title(f'{class_label} Confusion Matrix')
+
+def plot_multilabel_confusion_matrix(confusion_matrices, labels, rows=5, cols=3, figsize=(12, 12), fontsize=14, save_chart=True, save_path=None):
+    '''adapted from https://stackoverflow.com/questions/62722416/plot-confusion-matrix-for-multilabel-classifcation-python
+    '''
+    fig, ax = plt.subplots(rows, cols, figsize=figsize)
+    
+    for axes, cfs_matrix, label in zip(ax.flatten(), confusion_matrices, labels):
+        print_confusion_matrix(cfs_matrix, axes, label, ["N", "Y"], fontsize=fontsize, do_plot=save_chart, do_print=not save_chart)
+    
+    fig.suptitle('Class Confusion Matrices', fontsize=fontsize)
+    fig.tight_layout()
+    
+    if save_chart and save_path:
+        plt.savefig(save_path)
+    elif not save_chart:
+        plt.show()
+
+def print_multilabel_confusion_matrix_singular(name, confusion_matrices, labels):
+    class_names = ['N', 'Y']
+    df_cms = []
+    for cfs_matrix, label in zip(confusion_matrices, labels):
+        df_cms.append(pd.DataFrame(
+            cfs_matrix.astype(np.int32), index=pd.MultiIndex.from_arrays([[label] * 2, class_names]), columns=class_names,
+        ))
+    df_cm = pd.concat(df_cms)
+    logging.info(f'\n{name} Confusion Matrix\n{df_cm}\n')
+
+class MultiLabelConfusionMatrixPrintCallback(tf.keras.callbacks.Callback):
+    def __init__(self, labels):
+        super(MultiLabelConfusionMatrixPrintCallback, self).__init__()
+        self._labels = labels
+    
+    def on_epoch_end(self, epoch, logs=None):
+        if not 'multilabel_cm' in logs:
+            return
+        
+        print_multilabel_confusion_matrix_singular(f'train {epoch}', logs['multilabel_cm'], self._labels)
+        return logs
+
+class MultiLabelConfusionMatrixPlotCallback(tf.keras.callbacks.Callback):
+    def __init__(self, params, labels):
+        super(MultiLabelConfusionMatrixPlotCallback, self).__init__()
+        self._params = params
+        self._labels = labels
+    
+    def on_train_end(self, logs=None):
+        if not 'multilabel_cm' in logs:
+            return
+        
+        save_path = os.path.join(self._params.save_dir, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_train_confusion_matrix.png')
+        plot_multilabel_confusion_matrix(logs['multilabel_cm'], self._labels, save_chart=True, save_path=save_path)
+        logging.info(f'saved training confusion matrix plot to {save_path}')
