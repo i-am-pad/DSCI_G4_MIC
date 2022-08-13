@@ -165,6 +165,7 @@ class MultiLabelConfusionMatrixPlotCallback(tf.keras.callbacks.Callback):
         if not 'multilabel_cm' in logs:
             return
         
-        save_path = os.path.join(self._params.save_dir, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_train_confusion_matrix.png')
+        model_detail = utilities.get_model_train_param_detail(self._params)
+        save_path = os.path.join(self._params.save_dir, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_train_confusion_matrix_{model_detail}.png')
         plot_multilabel_confusion_matrix(logs['multilabel_cm'], self._labels, save_chart=True, save_path=save_path)
         logging.info(f'saved training confusion matrix plot to {save_path}')

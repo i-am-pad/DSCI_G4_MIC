@@ -16,11 +16,12 @@ import utilities
 import visualize
 
 def train(params, model, data_split):
+    model_detail = utilities.get_model_train_param_detail(params)
     checkpoints_path = os.path.join(params.save_dir,
                                     datetime.now().strftime('%Y%m%d_%H%M%S'),
-                                    f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
+                                    model_detail)
     tb_log_path = os.path.join(params.save_dir,
-                               f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
+                               f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{model_detail}")
     
     total_files = sum(data_split['train'].label_counts.values())
     num_classes = float(len(data_split['train'].label_counts))
@@ -89,7 +90,7 @@ def train(params, model, data_split):
     if params.multilabel:
         labels = data_split[split].LABELS.keys()
         visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
-        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix.png')
+        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix_{model_detail}.png')
         visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
         logging.info(f'saved {split} confusion matrix plot to {save_path}')
 

@@ -6,6 +6,8 @@ import os
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
+import parameters
+
 def read_file(path: str, dtype: str = 'uint8') -> np.array:
     '''reads a file from GCS into a numpy array
     
@@ -41,3 +43,20 @@ def summary_plus(layer, i=0):
         for l in layer.layers:
             i += 1
             summary_plus(l, i=i)
+
+def get_model_train_param_detail(params: parameters.TrainParameters):
+    '''returns string detailing model training parameterization
+    
+    args
+        params: model training parameters
+    
+    returns
+        string representation of model training parameterization
+    
+    raises
+        TypeError if :param:`params` is not a valid model training parameters object
+    '''
+    if type(params) != parameters.TrainingParameters:
+        raise TypeError(f'params must be of type parameters.TrainingParameters, not {type(params)}')
+    
+    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet'
