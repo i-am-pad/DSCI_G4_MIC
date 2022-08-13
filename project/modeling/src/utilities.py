@@ -56,7 +56,7 @@ def get_model_train_param_detail(params: parameters.TrainParameters):
     raises
         TypeError if :param:`params` is not a valid model training parameters object
     '''
-    if type(params) != parameters.TrainingParameters:
+    if type(params) != parameters.TrainParameters:
         raise TypeError(f'params must be of type parameters.TrainingParameters, not {type(params)}')
     
-    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet'
+    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.crop_size}crop_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.dimension_reduction}dr{"_pretrained"  if params.use_imagenet_weights else ""}'
