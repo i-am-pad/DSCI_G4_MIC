@@ -47,6 +47,7 @@ def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
     model = VGG16_MPNCOV(params, dataset)
     channels = 3
     model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
+    num_classes = 1 if not dataset else len(dataset.label_counts)
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
@@ -54,8 +55,9 @@ def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
-                        tf.keras.metrics.AUC(from_logits=True),
-                        tfa.metrics.F1Score(num_classes=1 if not dataset else len(dataset.label_counts)),
+                        tf.keras.metrics.AUC(from_logits=True, multi_label=params.multilabel, num_labels=num_classes),
+                        tfa.metrics.F1Score(num_classes=num_classes),
+                        tfa.metrics.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes),
                     ],
                     run_eagerly=params.debug,
                     )
@@ -94,7 +96,7 @@ class MultiLabelClassifier(tf.keras.Model):
             layers = [
                 layers.Flatten(),
                 layers.Dropout(params.dropout_p),
-                layers.Dense(64, activation='relu'),
+                layers.Dense(768, activation='relu'),
                 # still sigmoid, because this is multilabel; we want to predict a probability for # each label. softmax is not appropriate here, since it's not a probability
                 # distribution with a single best label to predict.
                 layers.Dense(len(dataset.label_counts), activation='sigmoid'),

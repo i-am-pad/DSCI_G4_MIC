@@ -13,6 +13,7 @@ import dataset
 import models.model
 import parameters
 import utilities
+import visualize
 
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
@@ -30,6 +31,7 @@ def train(params, model, data_split):
     }
     logging.info(f'class instances: {data_split["train"].label_counts}')
     logging.info(f'class weights: {class_weights}')
+    labels = data_split['train'].LABELS.keys()
     
     history = model.fit(data_split['train'],
                         validation_data = data_split['validation'],
@@ -44,7 +46,7 @@ def train(params, model, data_split):
                                 save_best_only=True,
                             ),
                             # https://www.tensorflow.org/tensorboard/graphs
-                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path, ),
+                            tf.keras.callbacks.TensorBoard(log_dir=tb_log_path),
                             tf.keras.callbacks.EarlyStopping(
                                 monitor="val_loss",
                                 min_delta=0.001,
@@ -54,6 +56,8 @@ def train(params, model, data_split):
                                 baseline=None,
                                 restore_best_weights=False,
                             ),
+                            visualize.MultiLabelConfusionMatrixPrintCallback(labels),
+                            visualize.MultiLabelConfusionMatrixPlotCallback(params, labels),
                         ],
                         max_queue_size = params.max_queue_size,
                         workers = params.workers,
@@ -62,10 +66,32 @@ def train(params, model, data_split):
                         verbose = params.verbose,
                         )
     
-    # TODO: generalize this better to handle the possible varied metrics
-    #if len(data_split['test']):
-    #    test_loss, test_acc, test_p, test_r, test_f1 = model.evaluate(data_split['test'], #verbose=2 if params.verbose else 0)
-    #    logging.info(f'loss: {test_loss}, accuracy: {test_acc}, precision: {test_p}, recall: ##{test_r}, f1: {test_f1}')
+    
+    if len(data_split['test']):
+        split = 'test'
+        results = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0, 
+                                 return_dict=True,
+                                 max_queue_size = params.max_queue_size,
+                                 workers = params.workers,
+                                 use_multiprocessing = params.use_multiprocessing,
+                                 )
+    else:
+        split = 'validation'
+        results = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0, 
+                                 return_dict=True,
+                                 max_queue_size = params.max_queue_size,
+                                 workers = params.workers,
+                                 use_multiprocessing = params.use_multiprocessing,
+                                 )
+    
+    logging.info(f'{split} results: {results}')
+    
+    if params.multilabel:
+        labels = data_split[split].LABELS.keys()
+        visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
+        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix.png')
+        visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
+        logging.info(f'saved {split} confusion matrix plot to {save_path}')
 
 def get_args():
     import argparse

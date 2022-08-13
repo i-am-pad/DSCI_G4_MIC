@@ -13,6 +13,7 @@ import models.cnn
 import models.logistic_regression
 import models.model
 import parameters
+import visualize
 
 MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size crop_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout multilabel create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
@@ -56,7 +57,7 @@ class ModelsTestCase(unittest.TestCase):
     
     def create_cnn_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
-                        save_dir='./data',
+                        save_dir='./data/test',
                         image_limit=30,
                         image_size=32,
                         crop_size=0,
@@ -86,7 +87,7 @@ class ModelsTestCase(unittest.TestCase):
     
     def create_vgg16_train_params():
         args = MockArgs(data_dir='gs://dsci591_g4mic/images_32x32',
-                        save_dir='./data',
+                        save_dir='./data/test',
                         image_limit=30,
                         image_size=32,
                         crop_size=0,
@@ -119,7 +120,7 @@ class ModelsTestCase(unittest.TestCase):
                         #image_size=32,
                         data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
                         image_size=256,
-                        save_dir='./data',
+                        save_dir='./data/test',
                         image_limit=30,
                         crop_size=32,
                         no_batch=False,
@@ -151,8 +152,8 @@ class ModelsTestCase(unittest.TestCase):
                         #image_size=32,
                         data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
                         image_size=256,
-                        save_dir='./data',
-                        image_limit=30,
+                        save_dir='./data/test',
+                        image_limit=320,
                         crop_size=32,
                         no_batch=False,
                         use_gpu=True,
@@ -183,7 +184,7 @@ class ModelsTestCase(unittest.TestCase):
                         #image_size=32,
                         data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
                         image_size=256,
-                        save_dir='./data',
+                        save_dir='./data/test',
                         image_limit=30,
                         crop_size=32,
                         no_batch=True,
@@ -215,7 +216,7 @@ class ModelsTestCase(unittest.TestCase):
                         #image_size=32,
                         data_dir=r'/mnt/d/data/dsci591_project/g4_mic_local/preprocessed/images_256x256',
                         image_size=256,
-                        save_dir='./data',
+                        save_dir='./data/test',
                         image_limit=30,
                         crop_size=32,
                         no_batch=True,
@@ -362,7 +363,24 @@ class ModelsTestCase(unittest.TestCase):
                             shuffle=True,
                             )
         _ = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0)
-        
+
+    
+    def test_train_eval_vgg16_mpncov_multilabel_cm_plot(self):
+        data_split = dataset.load_generators(self._vgg16_mpncov_multilabel_train_params)
+        model = self.create_vgg16_mpncov_multilabel(data_split['train'])
+        labels = data_split['train'].LABELS.keys()
+        history = model.fit(data_split['train'],
+                            validation_data = data_split['validation'],
+                            epochs = self._vgg16_mpncov_train_params.epochs,
+                            verbose = self._vgg16_mpncov_train_params.verbose,
+                            shuffle=True,
+                            callbacks=[visualize.MultiLabelConfusionMatrixPrintCallback(labels),
+                                       visualize.MultiLabelConfusionMatrixPlotCallback(self._vgg16_mpncov_multilabel_train_params, labels)
+                                       ]
+                            )
+        results = model.evaluate(data_split['test'] if len(data_split['test']) else data_split['validation'], verbose=2 if self._vgg16_mpncov_train_params.verbose else 0, return_dict=True)
+        visualize.print_multilabel_confusion_matrix_singular('validation', results['multilabel_cm'], labels)
+    
     def test_train_eval_lr(self):
         model = self.create_lr()
         data_split = dataset.load_generators(self._lr_params)
