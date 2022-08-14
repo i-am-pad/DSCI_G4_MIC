@@ -65,4 +65,4 @@ def get_model_train_param_detail(params: parameters.TrainParameters, is_checkpoi
     else:
         epoch_string = '_'
     
-    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.crop_size}crop_{params.trial}{epoch_string}{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.dimension_reduction}dr{"_pretrained"  if params.use_imagenet_weights else ""}'
+    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.crop_size}crop_{params.trial}{epoch_string}{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.dimension_reduction}dr{"_pretrained"  if params.use_imagenet_weights else ""}_{params.threshold}thr'
