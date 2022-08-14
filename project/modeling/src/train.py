@@ -63,9 +63,8 @@ def train(params, model, data_split):
                                 baseline=None,
                                 restore_best_weights=False,
                             ),
-                            # TODO: doesn't work with probability outputs
-                            #visualize.MultiLabelConfusionMatrixPrintCallback(labels),
-                            #visualize.MultiLabelConfusionMatrixPlotCallback(params, labels),
+                            visualize.MultiLabelConfusionMatrixPrintCallback(labels),
+                            visualize.MultiLabelConfusionMatrixPlotCallback(params, labels),
                         ],
                         max_queue_size = params.max_queue_size,
                         workers = params.workers,
@@ -77,7 +76,8 @@ def train(params, model, data_split):
     
     if len(data_split['test']):
         split = 'test'
-        results = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0, 
+        results = model.evaluate(data_split['test'],
+                                 verbose=2 if params.verbose else 0, 
                                  return_dict=True,
                                  max_queue_size = params.max_queue_size,
                                  workers = params.workers,
@@ -85,7 +85,8 @@ def train(params, model, data_split):
                                  )
     else:
         split = 'validation'
-        results = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0, 
+        results = model.evaluate(data_split['validation'],
+                                 verbose=2 if params.verbose else 0, 
                                  return_dict=True,
                                  max_queue_size = params.max_queue_size,
                                  workers = params.workers,
@@ -94,13 +95,12 @@ def train(params, model, data_split):
     
     logging.info(f'{split} results: {results}')
     
-    # TODO: doesn't work with probability outputs
-    # if params.multilabel:
-    #     labels = data_split[split].LABELS.keys()
-    #     visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
-    #     save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix_{model_detail}.png')
-    #     visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
-    #     logging.info(f'saved {split} confusion matrix plot to {save_path}')
+    if params.multilabel:
+        labels = data_split[split].LABELS.keys()
+        visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
+        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix_{model_detail}.png')
+        visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
+        logging.info(f'saved {split} confusion matrix plot to {save_path}')
 
 def get_args():
     import argparse

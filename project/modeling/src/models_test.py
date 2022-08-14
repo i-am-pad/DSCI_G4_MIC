@@ -15,7 +15,7 @@ import models.model
 import parameters
 import visualize
 
-MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size crop_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout multilabel create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
+MockArgs = namedtuple('mock_args', 'data_dir save_dir image_limit image_size crop_size no_batch use_gpu workers use_multiprocessing max_queue_size trial epochs batch_size dropout multilabel threshold create_channel_dummies use_imagenet_weights dimension_reduction svc_l2 model model_version optimizer learning_rate weight_decay describe verbose debug')
 
 class ModelsTestCase(unittest.TestCase):
     '''test cases for creating and training a model using data from GCS
@@ -75,6 +75,7 @@ class ModelsTestCase(unittest.TestCase):
                         svc_l2=0.01,
                         dropout=0.2,
                         multilabel=False,
+                        threshold=0.5,
                         model='cnn',
                         model_version='cnn_v1',
                         optimizer='adam',
@@ -101,6 +102,7 @@ class ModelsTestCase(unittest.TestCase):
                         batch_size=2,
                         dropout=0.2,
                         multilabel=False,
+                        threshold=0.5,
                         create_channel_dummies=True,
                         use_imagenet_weights=None,
                         dimension_reduction=None,
@@ -133,6 +135,7 @@ class ModelsTestCase(unittest.TestCase):
                         batch_size=2,
                         dropout=0.2,
                         multilabel=False,
+                        threshold=0.5,
                         create_channel_dummies=True,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -197,6 +200,7 @@ class ModelsTestCase(unittest.TestCase):
                         batch_size=2,
                         dropout=0.2,
                         multilabel=False,
+                        threshold=0.5,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,
@@ -229,6 +233,7 @@ class ModelsTestCase(unittest.TestCase):
                         batch_size=2,
                         dropout=0.2,
                         multilabel=False,
+                        threshold=0.5,
                         create_channel_dummies=False,
                         use_imagenet_weights=True,
                         dimension_reduction=64,

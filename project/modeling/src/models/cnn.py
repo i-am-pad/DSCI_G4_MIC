@@ -6,6 +6,9 @@ from tensorflow.keras import layers, metrics
 import tensorflow_addons as tfa
 
 from . import MPNCOV
+import sys
+sys.path.append('../')
+import utilities
 
 def get_model_v1(params, compile=True):
     model = CNN(params)
@@ -39,8 +42,7 @@ def get_model_vgg16_v1(params, compile=True):
                         metrics.Recall(),
                         #tf.keras.metrics.AUC(from_logits=False, multi_label=params.multilabel, num_labels=num_classes),
                         tfa.metrics.F1Score(num_classes=num_classes, threshold=params.threshold),
-                        # TODO: doesn't work with probability outputs
-                        #tfa.metrics.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes),
+                        utilities.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes, threshold=params.threshold),
                     ],
                     run_eagerly=params.debug,
                     )
@@ -64,8 +66,7 @@ def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
                         metrics.Recall(thresholds=params.threshold),
                         #tf.keras.metrics.AUC(from_logits=False, multi_label=params.multilabel, num_labels=num_classes, thresholds=params.threshold),
                         tfa.metrics.F1Score(num_classes=num_classes, threshold=params.threshold),
-                        # TODO: doesn't work with probability outputs
-                        #tfa.metrics.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes),
+                        utilities.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes, threshold=params.threshold),
                     ],
                     run_eagerly=params.debug,
                     )
