@@ -98,7 +98,7 @@ class MultiLabelClassifier(tf.keras.Model):
             layers = [
                 layers.Flatten(),
                 layers.Dropout(params.dropout_p),
-                layers.Dense(128, activation='relu'),
+                layers.Dense(1024, activation='relu'),
                 # still sigmoid, because this is multilabel; we want to predict a 
                 # probability for # each label. softmax is not appropriate here, 
                 # since it's not a probability distribution with a single best label 

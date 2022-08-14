@@ -44,11 +44,12 @@ def summary_plus(layer, i=0):
             i += 1
             summary_plus(l, i=i)
 
-def get_model_train_param_detail(params: parameters.TrainParameters):
+def get_model_train_param_detail(params: parameters.TrainParameters, is_checkpoint=False):
     '''returns string detailing model training parameterization
     
     args
         params: model training parameters
+        is_checkpoint: if True, returns string for checkpoint file name that includes epoch
     
     returns
         string representation of model training parameterization
@@ -59,4 +60,9 @@ def get_model_train_param_detail(params: parameters.TrainParameters):
     if type(params) != parameters.TrainParameters:
         raise TypeError(f'params must be of type parameters.TrainingParameters, not {type(params)}')
     
-    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.crop_size}crop_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.dimension_reduction}dr{"_pretrained"  if params.use_imagenet_weights else ""}'
+    if is_checkpoint:
+        epoch_string = f'_{{epoch}}-'
+    else:
+        epoch_string = '_'
+    
+    return f'{params.model_version}_{params.image_size}x{params.image_size}_{params.crop_size}crop_{params.trial}{epoch_string}{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.dimension_reduction}dr{"_pretrained"  if params.use_imagenet_weights else ""}'

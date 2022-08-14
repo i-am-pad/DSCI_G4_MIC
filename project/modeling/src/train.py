@@ -16,10 +16,10 @@ import utilities
 import visualize
 
 def train(params, model, data_split):
-    model_detail = utilities.get_model_train_param_detail(params)
     checkpoints_path = os.path.join(params.save_dir,
                                     datetime.now().strftime('%Y%m%d_%H%M%S'),
-                                    model_detail)
+                                    utilities.get_model_train_param_detail(params, is_checkpoint=True))
+    model_detail = utilities.get_model_train_param_detail(params)
     tb_log_path = os.path.join(params.save_dir,
                                f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{model_detail}")
     
@@ -42,7 +42,7 @@ def train(params, model, data_split):
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
-                                monitor='val_accuracy',
+                                monitor='val_accuracy' if not params.multilabel else 'val_categorical_accuracy',
                                 mode='max',
                                 save_best_only=True,
                             ),
