@@ -18,17 +18,24 @@ import visualize
 def train(params, model, data_split):
     checkpoints_path = os.path.join(params.save_dir,
                                     datetime.now().strftime('%Y%m%d_%H%M%S'),
-                                    f'{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{{epoch}}-{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet')
+                                    utilities.get_model_train_param_detail(params, is_checkpoint=True))
+    model_detail = utilities.get_model_train_param_detail(params)
     tb_log_path = os.path.join(params.save_dir,
-                               f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{params.model_version}_{params.image_size}x{params.image_size}_{params.trial}_{params.epochs}e_{params.batch_size}b_{params.learning_rate}lr_{params.weight_decay}wd_{params.use_imagenet_weights}imnet")
+                               f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{model_detail}")
     
     total_files = sum(data_split['train'].label_counts.values())
-    num_classes = float(len(data_split['train'].label_counts))
+    num_classes = len(data_split['train'].label_counts)
+    weight_fn = lambda c_instances: 1/c_instances * total_files/num_classes
     class_weights = {
         dataset.G4MicDataGenerator.LABELS[label]:
-            1./num_class_instances * total_files/num_classes
+            weight_fn(num_class_instances)
         for label, num_class_instances in data_split['train'].label_counts.items()
     }
+    # a series of weights used for each class's binary classifier result
+    #class_weights = [
+    #    {0: weight_fn(total_files - c_instances), 1: weight_fn(c_instances)}
+    #    for c_instances in data_split['train'].label_counts.values()
+    #]
     logging.info(f'class instances: {data_split["train"].label_counts}')
     logging.info(f'class weights: {class_weights}')
     labels = data_split['train'].LABELS.keys()
@@ -41,7 +48,7 @@ def train(params, model, data_split):
                         callbacks = [
                             tf.keras.callbacks.ModelCheckpoint(
                                 filepath = checkpoints_path,
-                                monitor='val_accuracy',
+                                monitor='val_accuracy',# if not params.multilabel else 'val_categorical_accuracy',
                                 mode='max',
                                 save_best_only=True,
                             ),
@@ -69,7 +76,8 @@ def train(params, model, data_split):
     
     if len(data_split['test']):
         split = 'test'
-        results = model.evaluate(data_split['test'], verbose=2 if params.verbose else 0, 
+        results = model.evaluate(data_split['test'],
+                                 verbose=2 if params.verbose else 0, 
                                  return_dict=True,
                                  max_queue_size = params.max_queue_size,
                                  workers = params.workers,
@@ -77,7 +85,8 @@ def train(params, model, data_split):
                                  )
     else:
         split = 'validation'
-        results = model.evaluate(data_split['validation'], verbose=2 if params.verbose else 0, 
+        results = model.evaluate(data_split['validation'],
+                                 verbose=2 if params.verbose else 0, 
                                  return_dict=True,
                                  max_queue_size = params.max_queue_size,
                                  workers = params.workers,
@@ -89,7 +98,7 @@ def train(params, model, data_split):
     if params.multilabel:
         labels = data_split[split].LABELS.keys()
         visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
-        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix.png')
+        save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix_{model_detail}.png')
         visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
         logging.info(f'saved {split} confusion matrix plot to {save_path}')
 
@@ -124,6 +133,7 @@ def get_args():
     ap.add_argument('--batch-size', type=int, default=1)
     ap.add_argument('--dropout', type=float, default=0.2, help='dropout rate for base classifier regularization')
     ap.add_argument('--multilabel', action=argparse.BooleanOptionalAction, default=False, help='use multi-label classification')
+    ap.add_argument('--threshold', type=float, default=0.5, help='threshold for multilabel classification')
     
     # cnn
     ap.add_argument('--create-channel-dummies', type=bool, action=argparse.BooleanOptionalAction, help='create dummy channels for each image')
