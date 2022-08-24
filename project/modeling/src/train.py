@@ -16,12 +16,13 @@ import utilities
 import visualize
 
 def train(params, model, data_split):
+    checkpoints_datetime_dir = datetime.now().strftime('%Y%m%d_%H%M%S')
     checkpoints_path = os.path.join(params.save_dir,
-                                    datetime.now().strftime('%Y%m%d_%H%M%S'),
+                                    checkpoints_datetime_dir,
                                     utilities.get_model_train_param_detail(params, is_checkpoint=True))
     model_detail = utilities.get_model_train_param_detail(params)
     tb_log_path = os.path.join(params.save_dir,
-                               f"logs/fit/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{model_detail}")
+                               f"logs/fit/{checkpoints_datetime_dir}_{model_detail}")
     
     total_files = sum(data_split['train'].label_counts.values())
     num_classes = len(data_split['train'].label_counts)
@@ -64,7 +65,7 @@ def train(params, model, data_split):
                                 restore_best_weights=False,
                             ),
                             visualize.MultiLabelConfusionMatrixPrintCallback(labels),
-                            visualize.MultiLabelConfusionMatrixPlotCallback(params, labels),
+                            visualize.MultiLabelConfusionMatrixPlotCallback(params, labels, os.path.join(params.save_dir, checkpoints_datetime_dir)),
                         ],
                         max_queue_size = params.max_queue_size,
                         workers = params.workers,
@@ -99,7 +100,7 @@ def train(params, model, data_split):
         labels = data_split[split].LABELS.keys()
         visualize.print_multilabel_confusion_matrix_singular(split, results['multilabel_cm'], labels)
         save_path = os.path.join(params.save_dir, f'{datetime.now().strftime("%Y%m%d_%H%M%S")}_{split}_confusion_matrix_{model_detail}.png')
-        visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, save_chart=True, save_path=save_path)
+        visualize.plot_multilabel_confusion_matrix(results['multilabel_cm'], labels, params.threshold, save_chart=True, save_path=save_path)
         logging.info(f'saved {split} confusion matrix plot to {save_path}')
 
 def get_args():

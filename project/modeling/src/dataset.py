@@ -98,8 +98,9 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
         G4MicDataGenerator.LABELS = {'benign': 0, 'malicious': 1}
         self._label_counts = {'benign': 0, 'malicious': 0}
         
+        filepaths = []
         # TODO: just use the full dataset registry instead
-        for label in self.LABELS.keys():
+        for label in G4MicDataGenerator.LABELS.keys():
             dir = os.path.join(self._params.data_dir, label)
             registry = os.path.join(self._params.data_dir, f'{label}.txt')
             if tf.io.gfile.exists(os.path.join(registry)):
@@ -117,8 +118,9 @@ class G4MicDataGenerator(tf.keras.utils.Sequence):
             self._label_counts = {label: self._params.image_limit for label in self._label_counts}
         
         filepaths = [ fps for fps in chain.from_iterable(filepaths) ]
+        np.random.shuffle(filepaths)
         
-        return np.random.shuffle(filepaths)
+        return filepaths
 
     def __len__(self):
         return len(self._filepaths) if self._params.no_batch else len(self._filepaths) // self._params.batch_size

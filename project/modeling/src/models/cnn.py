@@ -21,7 +21,7 @@ def get_model_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
-                        tf.keras.metrics.AUC(from_logits=True),
+                        tf.keras.metrics.AUC(),
                         tfa.metrics.F1Score(num_classes=1),
                     ],
                     run_eagerly=params.debug,
@@ -40,7 +40,7 @@ def get_model_vgg16_v1(params, compile=True):
                         'accuracy',
                         metrics.Precision(),
                         metrics.Recall(),
-                        #tf.keras.metrics.AUC(from_logits=False, multi_label=params.multilabel, num_labels=num_classes),
+                        #tf.keras.metrics.AUC(multi_label=params.multilabel, num_labels=num_classes),
                         tfa.metrics.F1Score(num_classes=num_classes, threshold=params.threshold),
                         utilities.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes, threshold=params.threshold),
                     ],
@@ -52,11 +52,13 @@ def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
     model = VGG16_MPNCOV(params, dataset)
     channels = 3
     model.build(input_shape=(1 if params.no_batch else params.batch_size, params.image_size, params.image_size, channels))
-    num_classes = 1 if not dataset else len(dataset.label_counts)
+    
     if params.multilabel:
+        num_classes = len(dataset.label_counts)
         accuracy_metric = metrics.BinaryAccuracy(name='accuracy', threshold=params.threshold)
     else:
-        accuracy_metric = metrics.Accuracy(name='accuracy')
+        num_classes = 1
+        accuracy_metric = 'accuracy'
     if compile:
         model.compile(optimizer=params.optimizer,
                     loss='binary_crossentropy',
@@ -64,7 +66,7 @@ def get_model_vgg16_mpncov_v1(params, dataset=None, compile=True):
                         accuracy_metric,
                         metrics.Precision(thresholds=params.threshold),
                         metrics.Recall(thresholds=params.threshold),
-                        #tf.keras.metrics.AUC(from_logits=False, multi_label=params.multilabel, num_labels=num_classes, thresholds=params.threshold),
+                        #tf.keras.metrics.AUC(multi_label=params.multilabel, num_labels=num_classes, thresholds=params.threshold),
                         tfa.metrics.F1Score(num_classes=num_classes, threshold=params.threshold),
                         utilities.MultiLabelConfusionMatrix(name='multilabel_cm', num_classes=num_classes, threshold=params.threshold),
                     ],
@@ -105,11 +107,10 @@ class MultiLabelClassifier(tf.keras.Model):
             layers = [
                 layers.Flatten(),
                 layers.Dropout(params.dropout_p),
-                layers.Dense(512, activation='relu'),
+                layers.Dense(64, activation='relu'),
                 # still sigmoid, because this is multilabel; we want to predict a 
                 # probability for # each label. softmax is not appropriate here, 
-                # since it's not a probability distribution with a single best label 
-                # to predict.
+                # since isn't to predict a single best label given a proba distribution.
                 layers.Dense(len(dataset.label_counts), activation='sigmoid'),
             ],
             name='multilabel_classifier',

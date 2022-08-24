@@ -17,6 +17,7 @@ MODES = {
     'show-model-summary': visualize.show_model_summary,
     'plot-model': visualize.plot_model,
     'plot-layer-activations': visualize.plot_layer_activations,
+    'train-valid-cm': visualize.train_valid_cm,
 }
 
 def infer(params):
