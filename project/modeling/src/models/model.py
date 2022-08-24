@@ -48,7 +48,7 @@ def load_model(params, has_f1: bool=True) -> tf.keras.Model:
         def f1(y_true, y_pred):
             '''wrapper to help loading keras models saved with tensorflow_addons F1Score metric
             '''
-            metric = tfa.metrics.F1Score(num_classes=3, threshold=0.5)
+            metric = tfa.metrics.F1Score(num_classes=3, threshold=params.threshold)
             metric.update_state(y_true, y_pred)
             return metric.result()
         custom_objects['f1'] = f1

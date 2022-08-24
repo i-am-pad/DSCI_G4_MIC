@@ -117,7 +117,7 @@ def print_confusion_matrix(confusion_matrix, axes, class_label, class_names, fon
         axes.set_xlabel('y_pred')
         axes.set_title(f'{class_label} Confusion Matrix')
 
-def plot_multilabel_confusion_matrix(confusion_matrices, labels, rows=5, cols=3, figsize=(12, 12), fontsize=14, save_chart=True, save_path=None):
+def plot_multilabel_confusion_matrix(confusion_matrices, labels, threshold, rows=5, cols=3, figsize=(12, 12), fontsize=14, save_chart=True, save_path=None):
     '''adapted from https://stackoverflow.com/questions/62722416/plot-confusion-matrix-for-multilabel-classifcation-python
     '''
     fig, ax = plt.subplots(rows, cols, figsize=figsize)
@@ -125,7 +125,7 @@ def plot_multilabel_confusion_matrix(confusion_matrices, labels, rows=5, cols=3,
     for axes, cfs_matrix, label in zip(ax.flatten(), confusion_matrices, labels):
         print_confusion_matrix(cfs_matrix, axes, label, ["N", "Y"], fontsize=fontsize, do_plot=save_chart, do_print=not save_chart)
     
-    fig.suptitle('Class Confusion Matrices', fontsize=fontsize)
+    fig.suptitle(f'Class Confusion Matrices (threshold={threshold})', fontsize=fontsize)
     fig.tight_layout()
     
     if save_chart and save_path:
@@ -153,19 +153,28 @@ class MultiLabelConfusionMatrixPrintCallback(tf.keras.callbacks.Callback):
             return
         
         print_multilabel_confusion_matrix_singular(f'train {epoch}', logs['multilabel_cm'], self._labels)
+        print_multilabel_confusion_matrix_singular(f'validation {epoch}', logs['val_multilabel_cm'], self._labels)
+        
         return logs
 
 class MultiLabelConfusionMatrixPlotCallback(tf.keras.callbacks.Callback):
-    def __init__(self, params, labels):
+    def __init__(self, params, labels, save_dir=None):
         super(MultiLabelConfusionMatrixPlotCallback, self).__init__()
         self._params = params
         self._labels = labels
+        self._save_dir = save_dir
     
-    def on_train_end(self, logs=None):
+    def on_epoch_end(self, logs=None):
         if not 'multilabel_cm' in logs:
             return
         
         model_detail = utilities.get_model_train_param_detail(self._params)
-        save_path = os.path.join(self._params.save_dir, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_train_confusion_matrix_{model_detail}.png')
-        plot_multilabel_confusion_matrix(logs['multilabel_cm'], self._labels, save_chart=True, save_path=save_path)
-        logging.info(f'saved training confusion matrix plot to {save_path}')
+        time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_dir = self._save_dir if self._save_dir else self._params.save_dir
+        
+        train_path = os.path.join(save_dir, f'{time}_train_confusion_matrix_{model_detail}.png')
+        plot_multilabel_confusion_matrix(logs['multilabel_cm'], self._labels, self._params.threshold, save_chart=True, save_path=train_path)
+        validation_path = os.path.join(save_dir, f'{time}_validation_confusion_matrix_{model_detail}.png')
+        plot_multilabel_confusion_matrix(logs['val_multilabel_cm'], self._labels, self._params.threshold, save_chart=True, save_path=validation_path)
+        
+        logging.info(f'saved confusion matrix plots to {train_path} and {validation_path}')
